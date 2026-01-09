@@ -2,10 +2,9 @@
 import { BlogPost, SiteSettings } from './types';
 
 // 클라우드 데이터베이스(Supabase) 설정
-// Supabase 대시보드 -> Settings -> API에서 복사한 값을 여기에 넣으세요.
 export const SUPABASE_CONFIG = {
-  url: '여기에_복사한_Project_URL_입력', 
-  key: '여기에_복사한_anon_public_key_입력', 
+  url: '', // Supabase에서 복사한 Project URL
+  key: '', // Supabase에서 복사한 anon public key
 };
 
 export const INITIAL_POSTS: BlogPost[] = [
@@ -18,38 +17,4 @@ export const INITIAL_POSTS: BlogPost[] = [
     author: '김병준',
     date: '2024-05-20',
     image: 'https://images.unsplash.com/photo-1518546305927-5a555bb7020d?auto=format&fit=crop&w=800&q=80',
-    slug: '비트코인의-미래-l2-확장성-솔루션',
-    tags: ['비트코인', '레이어2', '블록체인'],
-    views: 1240,
-    comments: []
-  }
-];
-
-export const DEFAULT_SETTINGS: SiteSettings = {
-  brandName: '김병준의',
-  brandSubName: '블로그',
-  mainTitle: '김병준의 기술 및 금융 인사이트',
-  mainSubtitle: '암호화폐, 블록체인 개발 및 글로벌 경제에 대한 기록.',
-  adminPassword: 'Ilikekimchi!',
-  aboutContent: '<h1>안녕하세요, 김병준입니다.</h1><p>이 블로그는 암호화폐 시장의 흐름과 블록체인 기술, 그리고 프론트엔드 개발에 대한 저의 통찰을 기록하는 공간입니다.</p>',
-  categories: ['Crypto', 'Coding', 'Finance', 'Market'],
-  socialLinks: {
-    twitter: '',
-    github: '',
-    youtube: '',
-    instagram: ''
-  },
-  adConfig: {
-    clientId: 'ca-pub-XXXXXXXXXXXXXXXX',
-    mainPageSlot: '1234567890',
-    postTopSlot: '2345678901',
-    postBottomSlot: '3456789012'
-  }
-};
-
-export const SITE_CONFIG = {
-  name: '김병준의 블로그',
-  description: '암호화폐, 블록체인 코딩, 글로벌 금융에 대한 김병준의 개인 기술 블로그입니다.',
-  baseUrl: 'https://blog.byungjun.org',
-  keywords: '김병준, 비트코인, 이더리움, 코인 코딩, 리액트 웹3, 금융 분석, 블록체인 개발, 재테크',
-};
+    slug: '비트코인의-미래-l2-확장성-솔루
