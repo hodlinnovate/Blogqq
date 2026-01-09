@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { BlogPost, SiteSettings } from '../types';
-import { INITIAL_POSTS, DEFAULT_SETTINGS, ADSENSE_CONFIG } from '../constants';
+// Removed ADSENSE_CONFIG from imports as it does not exist in constants.ts
+import { INITIAL_POSTS, DEFAULT_SETTINGS } from '../constants';
 import { fetchPostsFromCloud } from '../lib/db';
 import SEO from '../components/SEO';
 import AdSense from '../components/AdSense';
@@ -53,7 +54,11 @@ const Category: React.FC = () => {
         <p className="text-gray-500 mt-2">{isLoading ? '인사이트 동기화 중...' : `총 ${posts.length}개의 분석 리포트`}</p>
       </header>
 
-      <AdSense slot={ADSENSE_CONFIG.slots.mainPage} />
+      {/* Fixed AdSense usage to use settings.adConfig instead of non-existent ADSENSE_CONFIG */}
+      <AdSense 
+        clientId={settings.adConfig.clientId} 
+        slot={settings.adConfig.mainPageSlot} 
+      />
 
       {posts.length > 0 ? (
         <section className="divide-y divide-gray-100">

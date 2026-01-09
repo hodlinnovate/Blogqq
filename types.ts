@@ -1,4 +1,3 @@
-
 export interface Comment {
   id: string;
   author: string;
@@ -21,6 +20,13 @@ export interface BlogPost {
   comments: Comment[];
 }
 
+export interface AdConfig {
+  clientId: string;
+  mainPageSlot: string;
+  postTopSlot: string;
+  postBottomSlot: string;
+}
+
 export interface SiteSettings {
   brandName: string;
   brandSubName: string;
@@ -33,15 +39,7 @@ export interface SiteSettings {
     youtube: string;
     instagram: string;
   };
-  supabaseUrl?: string; // 클라우드 DB 주소
-  supabaseKey?: string; // 클라우드 DB 키
-}
-
-export interface AdConfig {
-  clientId: string;
-  slots: {
-    mainPage: string;
-    postContentTop: string;
-    postContentBottom: string;
-  };
+  adConfig: AdConfig;
+  supabaseUrl?: string;
+  supabaseKey?: string;
 }

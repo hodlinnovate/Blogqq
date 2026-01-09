@@ -1,4 +1,3 @@
-
 import { BlogPost, SiteSettings } from './types';
 
 export const INITIAL_POSTS: BlogPost[] = [
@@ -37,12 +36,18 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   brandSubName: '블로그',
   mainTitle: '김병준의 기술 및 금융 인사이트',
   mainSubtitle: '암호화폐, 블록체인 개발 및 글로벌 경제에 대한 기록.',
-  adminPassword: 'admin1234', // 초기 기본 비밀번호
+  adminPassword: 'admin1234',
   socialLinks: {
     twitter: '',
     github: '',
     youtube: '',
     instagram: ''
+  },
+  adConfig: {
+    clientId: 'ca-pub-XXXXXXXXXXXXXXXX',
+    mainPageSlot: '1234567890',
+    postTopSlot: '2345678901',
+    postBottomSlot: '3456789012'
   }
 };
 
@@ -51,13 +56,4 @@ export const SITE_CONFIG = {
   description: '암호화폐, 블록체인 코딩, 글로벌 금융에 대한 김병준의 개인 기술 블로그입니다.',
   baseUrl: 'https://blog.byungjun.org',
   keywords: '김병준, 비트코인, 이더리움, 코인 코딩, 리액트 웹3, 금융 분석, 블록체인 개발, 재테크',
-};
-
-export const ADSENSE_CONFIG = {
-  clientId: 'ca-pub-XXXXXXXXXXXXXXXX',
-  slots: {
-    mainPage: '1234567890',
-    postContentTop: '2345678901',
-    postContentBottom: '3456789012'
-  }
 };

@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { BlogPost, SiteSettings } from '../types';
-import { INITIAL_POSTS, ADSENSE_CONFIG, DEFAULT_SETTINGS } from '../constants';
+import { INITIAL_POSTS, DEFAULT_SETTINGS } from '../constants';
 import { fetchPostsFromCloud, fetchSettingsFromCloud } from '../lib/db';
 import SEO from '../components/SEO';
 import AdSense from '../components/AdSense';
@@ -14,26 +13,21 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      // 1. Load Local
-      const savedSettings = localStorage.getItem('crypto_site_settings');
-      if (savedSettings) setSettings(JSON.parse(savedSettings));
+      const cloudSettings = await fetchSettingsFromCloud();
+      if (cloudSettings) {
+        setSettings(prev => ({ ...prev, ...cloudSettings }));
+      } else {
+        const savedSettings = localStorage.getItem('crypto_site_settings');
+        if (savedSettings) setSettings(JSON.parse(savedSettings));
+      }
 
       const savedPosts = localStorage.getItem('crypto_blog_posts');
-      const localPosts = savedPosts ? JSON.parse(savedPosts) : INITIAL_POSTS;
-      setPosts(localPosts);
+      setPosts(savedPosts ? JSON.parse(savedPosts) : INITIAL_POSTS);
 
-      // 2. Load Cloud (if available)
       const cloudPosts = await fetchPostsFromCloud();
       if (cloudPosts && cloudPosts.length > 0) {
         setPosts(cloudPosts);
         localStorage.setItem('crypto_blog_posts', JSON.stringify(cloudPosts));
-      }
-
-      const cloudSettings = await fetchSettingsFromCloud();
-      if (cloudSettings) {
-        const mergedSettings = { ...settings, ...cloudSettings };
-        setSettings(mergedSettings as SiteSettings);
-        localStorage.setItem('crypto_site_settings', JSON.stringify(mergedSettings));
       }
       
       setIsLoading(false);
@@ -43,48 +37,43 @@ const Home: React.FC = () => {
   }, []);
 
   return (
-    <div className="space-y-12">
+    <div className="max-w-2xl mx-auto space-y-8">
       <SEO title={settings.brandName + settings.brandSubName} description={settings.mainSubtitle} />
       
-      <header className="mb-12 border-b border-gray-100 pb-8 text-center md:text-left">
-        <h1 className="text-4xl font-black text-gray-900 tracking-tight">{settings.mainTitle}</h1>
-        <p className="text-gray-500 mt-3 text-lg font-medium">{settings.mainSubtitle}</p>
+      <header className="mb-12 py-8 border-b border-gray-50">
+        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{settings.mainTitle}</h1>
+        <p className="text-gray-400 mt-2 text-base font-medium">{settings.mainSubtitle}</p>
       </header>
 
-      <AdSense slot={ADSENSE_CONFIG.slots.mainPage} />
+      <AdSense 
+        clientId={settings.adConfig.clientId} 
+        slot={settings.adConfig.mainPageSlot} 
+        className="!my-4" 
+      />
 
       {isLoading ? (
-        <div className="py-20 text-center text-gray-400 font-bold animate-pulse">최신 인사이트 동기화 중...</div>
+        <div className="py-20 text-center text-gray-300 font-medium animate-pulse">Syncing...</div>
       ) : (
-        <section className="divide-y divide-gray-100">
+        <section className="divide-y divide-gray-50">
           {posts.map((post) => (
-            <article key={post.id} className="group py-10 first:pt-0 last:pb-0">
-              <Link to={`/post/${post.slug}`} className="flex flex-col md:flex-row items-start justify-between gap-8">
-                <div className="flex-grow flex flex-col order-2 md:order-1">
-                  <div className="flex items-center space-x-2 text-xs font-black text-blue-600 uppercase mb-3">
+            <article key={post.id} className="group py-8 first:pt-0 last:pb-0">
+              <Link to={`/post/${post.slug}`} className="flex items-start justify-between gap-6">
+                <div className="flex-grow flex flex-col min-w-0">
+                  <div className="flex items-center space-x-2 text-[11px] font-bold text-blue-500 uppercase mb-2">
                     <span>{post.category}</span>
                     <span className="text-gray-200">•</span>
-                    <span className="text-gray-400 font-bold">{post.date}</span>
+                    <span className="text-gray-400">{post.date}</span>
                   </div>
-                  <h2 className="text-2xl md:text-3xl font-black text-gray-900 group-hover:text-blue-600 transition-colors mb-4 leading-tight">
+                  <h2 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors mb-2 leading-tight line-clamp-2">
                     {post.title}
                   </h2>
-                  <p className="text-gray-500 text-sm md:text-base leading-relaxed line-clamp-2 font-medium">
+                  <p className="text-gray-400 text-sm leading-relaxed line-clamp-2 font-medium">
                     {post.excerpt}
                   </p>
-                  <div className="mt-6 flex items-center text-[10px] font-black text-gray-300 uppercase tracking-widest">
-                    <span>{post.views?.toLocaleString() || 0} VIEWS</span>
-                    <span className="mx-2">/</span>
-                    <span className="text-blue-500">READ MORE →</span>
-                  </div>
                 </div>
                 
-                <div className="flex-shrink-0 w-full md:w-48 h-48 md:h-48 rounded-[2rem] overflow-hidden bg-gray-100 order-1 md:order-2">
-                  <img 
-                    src={post.image} 
-                    alt={post.title} 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
+                <div className="flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-gray-50 border border-gray-100">
+                  <img src={post.image} className="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all group-hover:scale-105" />
                 </div>
               </Link>
             </article>
@@ -92,7 +81,13 @@ const Home: React.FC = () => {
         </section>
       )}
 
-      {posts.length > 3 && <AdSense slot={ADSENSE_CONFIG.slots.mainPage} className="mt-12" />}
+      {posts.length > 3 && (
+        <AdSense 
+          clientId={settings.adConfig.clientId} 
+          slot={settings.adConfig.mainPageSlot} 
+          className="mt-12" 
+        />
+      )}
     </div>
   );
 };
