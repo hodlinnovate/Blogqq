@@ -1,3 +1,4 @@
+
 export interface Comment {
   id: string;
   author: string;
@@ -10,7 +11,7 @@ export interface BlogPost {
   title: string;
   excerpt: string;
   content: string;
-  category: 'Crypto' | 'Coding' | 'Finance' | 'Market';
+  category: string;
   author: string;
   date: string;
   image: string;
@@ -33,6 +34,8 @@ export interface SiteSettings {
   mainTitle: string;
   mainSubtitle: string;
   adminPassword?: string;
+  aboutContent?: string;
+  categories: string[];
   socialLinks: {
     twitter: string;
     github: string;
