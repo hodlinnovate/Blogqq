@@ -7,10 +7,9 @@ export const getDbClient = () => {
   const savedSettings = localStorage.getItem('crypto_site_settings');
   if (!savedSettings) return null;
   
-  const { supabaseUrl, supabaseKey } = JSON.parse(savedSettings);
-  if (!supabaseUrl || !supabaseKey) return null;
-
   try {
+    const { supabaseUrl, supabaseKey } = JSON.parse(savedSettings);
+    if (!supabaseUrl || !supabaseKey) return null;
     return createClient(supabaseUrl, supabaseKey);
   } catch (e) {
     console.error("DB Connection Error:", e);
@@ -35,7 +34,7 @@ export const fetchPostBySlugFromCloud = async (slug: string): Promise<BlogPost |
   if (!supabase) return null;
 
   const { data, error } = await supabase.from('posts').select('*').eq('slug', slug).single();
-  if (error) return null;
+  if (error || !data) return null;
   return data as BlogPost;
 };
 
@@ -59,9 +58,13 @@ export const fetchSettingsFromCloud = async (): Promise<Partial<SiteSettings> | 
   const supabase = getDbClient();
   if (!supabase) return null;
 
-  const { data, error } = await supabase.from('settings').select('data').eq('id', 1).single();
-  if (error) return null;
-  return data.data;
+  try {
+    const { data, error } = await supabase.from('settings').select('data').eq('id', 1).single();
+    if (error || !data || !data.data) return null;
+    return data.data;
+  } catch (e) {
+    return null;
+  }
 };
 
 export const saveSettingsToCloud = async (settings: SiteSettings) => {
