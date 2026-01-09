@@ -1,10 +1,14 @@
 
 import { BlogPost, SiteSettings } from './types';
 
-// 클라우드 데이터베이스(Supabase) 설정
+// [중요] 클라우드 데이터베이스(Supabase) 설정
+// 아래 정보가 정확해야 모든 기기에서 글이 공유됩니다.
 export const SUPABASE_CONFIG = {
-  url: '', // Supabase에서 복사한 Project URL
-  key: '', // Supabase에서 복사한 anon public key
+  // Supabase Dashboard -> Project Settings -> API -> Project URL
+  url: 'https://ppuodxsmslajsbwwdqif.supabase.co', 
+  // Supabase Dashboard -> Project Settings -> API -> anon (public) key
+  // 'eyJhbG...'로 시작하는 아주 긴 키를 넣어야 합니다.
+  key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBwdW9keHNtc2xhanNid3dkcWlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5NzgxMjgsImV4cCI6MjA4MzU1NDEyOH0.vAgIjJowTovYmR_DFJDY5dLOYg5hejga1fdONcEsO0M', 
 };
 
 export const INITIAL_POSTS: BlogPost[] = [

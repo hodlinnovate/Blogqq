@@ -5,29 +5,33 @@ import { BlogPost, SiteSettings } from '../types';
 import { SUPABASE_CONFIG } from '../constants';
 
 export const getDbClient = () => {
-  // 1. constants.ts의 설정을 먼저 확인 (하드코딩된 경우 전역 공유 가능)
-  if (SUPABASE_CONFIG.url && SUPABASE_CONFIG.key) {
-    return createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
+  // 1. constants.ts의 설정을 먼저 확인
+  if (SUPABASE_CONFIG.url && SUPABASE_CONFIG.key && SUPABASE_CONFIG.key.length > 20) {
+    try {
+      return createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
+    } catch (e) {
+      console.error("Supabase Client Init Error (Hardcoded):", e);
+    }
   }
 
-  // 2. 어드민에서 입력한 브라우저 설정을 확인
+  // 2. 어드민에서 입력한 브라우저 설정을 확인 (Fallback)
   const savedSettings = localStorage.getItem('crypto_site_settings');
   if (!savedSettings) return null;
   
   try {
     const config = JSON.parse(savedSettings);
-    if (!config || typeof config !== 'object' || !config.supabaseUrl || !config.supabaseKey) {
-      return null;
+    if (config?.supabaseUrl && config?.supabaseKey && config.supabaseKey.length > 20) {
+      return createClient(config.supabaseUrl, config.supabaseKey);
     }
-    return createClient(config.supabaseUrl, config.supabaseKey);
   } catch (e) {
-    return null;
+    console.error("Supabase Client Init Error (LocalStorage):", e);
   }
+  return null;
 };
 
-// 클라우드 연결 상태 확인용
 export const isCloudConnected = () => {
-  return getDbClient() !== null;
+  const client = getDbClient();
+  return client !== null;
 };
 
 export const fetchPostsFromCloud = async (): Promise<BlogPost[] | null> => {
@@ -36,7 +40,10 @@ export const fetchPostsFromCloud = async (): Promise<BlogPost[] | null> => {
 
   try {
     const { data, error } = await supabase.from('posts').select('*').order('date', { ascending: false });
-    if (error) return null;
+    if (error) {
+      console.error("Fetch Posts Error:", error.message);
+      return null;
+    }
     return data as BlogPost[];
   } catch (e) {
     return null;
@@ -49,7 +56,7 @@ export const fetchPostBySlugFromCloud = async (slug: string): Promise<BlogPost |
 
   try {
     const { data, error } = await supabase.from('posts').select('*').or(`slug.eq.${slug},id.eq.${slug}`).single();
-    if (error || !data) return null;
+    if (error) return null;
     return data as BlogPost;
   } catch (e) {
     return null;
@@ -62,7 +69,11 @@ export const savePostToCloud = async (post: BlogPost) => {
 
   try {
     const { error } = await supabase.from('posts').upsert(post);
-    return !error;
+    if (error) {
+      console.error("Save Post Error:", error.message);
+      return false;
+    }
+    return true;
   } catch (e) {
     return false;
   }
