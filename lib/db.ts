@@ -5,7 +5,6 @@ import { BlogPost, SiteSettings } from '../types';
 import { SUPABASE_CONFIG } from '../constants';
 
 export const getDbClient = () => {
-  // 1. constants.ts의 설정을 먼저 확인
   if (SUPABASE_CONFIG.url && SUPABASE_CONFIG.key && SUPABASE_CONFIG.key.length > 20) {
     try {
       return createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key);
@@ -14,7 +13,6 @@ export const getDbClient = () => {
     }
   }
 
-  // 2. 어드민에서 입력한 브라우저 설정을 확인 (Fallback)
   const savedSettings = localStorage.getItem('crypto_site_settings');
   if (!savedSettings) return null;
   
@@ -81,12 +79,20 @@ export const savePostToCloud = async (post: BlogPost) => {
 
 export const deletePostFromCloud = async (id: string) => {
   const supabase = getDbClient();
-  if (!supabase) return false;
+  if (!supabase) {
+    console.warn("Cloud not connected - deleting locally only.");
+    return true;
+  }
 
   try {
     const { error } = await supabase.from('posts').delete().eq('id', id);
-    return !error;
+    if (error) {
+      console.error("Delete Post Error (Supabase):", error.message);
+      return false;
+    }
+    return true;
   } catch (e) {
+    console.error("Delete Post Exception:", e);
     return false;
   }
 };
