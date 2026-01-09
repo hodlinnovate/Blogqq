@@ -99,7 +99,7 @@ const Admin: React.FC = () => {
     localStorage.setItem('crypto_site_settings', JSON.stringify(settingsToSave));
     const success = await saveSettingsToCloud(settingsToSave);
     checkConnection();
-    setSaveStatus(success ? '클라우드 저장 성공!' : '로컬에만 저장되었습니다.');
+    setSaveStatus(success ? '설정 저장 성공!' : '로컬에만 저장되었습니다.');
     setTimeout(() => setSaveStatus(null), 3000);
   };
 
@@ -232,10 +232,45 @@ create table if not exists settings (
           </div>
         </section>
       ) : activeTab === 'ads' ? (
-        <section className="bg-white border p-8 rounded-3xl space-y-6">
-          <h2 className="text-xl font-black">AdSense Configuration</h2>
-          <input className="w-full px-4 py-3 bg-gray-50 border rounded-xl" value={settings.adConfig?.clientId} onChange={e => setSettings({...settings, adConfig: {...settings.adConfig, clientId: e.target.value}})} placeholder="Client ID (ca-pub-...)" />
-          <button onClick={() => handleSaveSettings()} className="w-full bg-black text-white py-4 rounded-xl font-bold">저장</button>
+        <section className="bg-white border p-8 rounded-3xl space-y-8">
+          <div>
+            <h2 className="text-xl font-black mb-2">Google AdSense 설정</h2>
+            <p className="text-xs text-gray-400 font-medium">광고 승인 후 할당받은 코드를 여기에 입력하세요.</p>
+          </div>
+          
+          <div className="space-y-6">
+            <div className="p-6 bg-gray-50 rounded-2xl space-y-4">
+              <label className="text-[10px] font-black uppercase text-gray-500 block">Publisher ID (공통)</label>
+              <input className="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl font-mono text-sm" value={settings.adConfig?.clientId || ''} onChange={e => setSettings({...settings, adConfig: {...settings.adConfig, clientId: e.target.value}})} placeholder="ca-pub-XXXXXXXXXXXXXXXX" />
+              <p className="text-[10px] text-gray-400">※ ca-pub-으로 시작하는 본인의 전체 ID를 입력하세요.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 border rounded-2xl space-y-3">
+                <label className="text-[10px] font-black uppercase text-gray-400 block">메인 리스트 Slot</label>
+                <input className="w-full px-4 py-2 bg-gray-50 rounded-lg text-sm font-bold" value={settings.adConfig?.mainPageSlot || ''} onChange={e => setSettings({...settings, adConfig: {...settings.adConfig, mainPageSlot: e.target.value}})} placeholder="1234567890" />
+              </div>
+              <div className="p-4 border rounded-2xl space-y-3">
+                <label className="text-[10px] font-black uppercase text-gray-400 block">본문 상단 Slot</label>
+                <input className="w-full px-4 py-2 bg-gray-50 rounded-lg text-sm font-bold" value={settings.adConfig?.postTopSlot || ''} onChange={e => setSettings({...settings, adConfig: {...settings.adConfig, postTopSlot: e.target.value}})} placeholder="2345678901" />
+              </div>
+              <div className="p-4 border rounded-2xl space-y-3">
+                <label className="text-[10px] font-black uppercase text-gray-400 block">본문 하단 Slot</label>
+                <input className="w-full px-4 py-2 bg-gray-50 rounded-lg text-sm font-bold" value={settings.adConfig?.postBottomSlot || ''} onChange={e => setSettings({...settings, adConfig: {...settings.adConfig, postBottomSlot: e.target.value}})} placeholder="3456789012" />
+              </div>
+            </div>
+
+            <button onClick={() => handleSaveSettings()} className="w-full bg-black text-white py-4 rounded-xl font-bold shadow-lg shadow-gray-200">광고 설정 저장</button>
+          </div>
+
+          <div className="p-6 bg-yellow-50 rounded-2xl border border-yellow-100">
+            <h3 className="text-xs font-black text-yellow-800 mb-2">광고가 안 보이나요?</h3>
+            <ul className="text-[11px] text-yellow-700 space-y-1 list-disc list-inside font-medium">
+              <li>애드센스 계정이 완전히 승인되었는지 확인하세요.</li>
+              <li>사이트 소유권 확인(Verification)용 HTML 코드는 index.html에 이미 추가되어 있습니다.</li>
+              <li>애드박스가 회색으로 보인다면 아직 광고가 준비되지 않은 것입니다 (승인 대기 중).</li>
+            </ul>
+          </div>
         </section>
       ) : (
         <>

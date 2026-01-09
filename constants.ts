@@ -43,7 +43,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     instagram: ""
   },
   adConfig: {
-    clientId: "ca-pub-XXXXXXXXXXXXXXXX",
+    clientId: "ca-pub-1719886775143382",
     mainPageSlot: "1234567890",
     postTopSlot: "2345678901",
     postBottomSlot: "3456789012"
