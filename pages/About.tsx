@@ -4,8 +4,6 @@ import { SiteSettings } from '../types';
 import { DEFAULT_SETTINGS } from '../constants';
 import { fetchSettingsFromCloud } from '../lib/db';
 import SEO from '../components/SEO';
-// @ts-ignore
-import { marked } from 'https://esm.sh/marked@12.0.0';
 
 const About: React.FC = () => {
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SETTINGS);
@@ -18,7 +16,7 @@ const About: React.FC = () => {
         setSettings(prev => ({ ...prev, ...cloudSettings }));
       } else {
         const savedSettings = localStorage.getItem('crypto_site_settings');
-        if (savedSettings) setSettings(JSON.parse(savedSettings));
+        if (savedSettings) setSettings(prev => ({ ...prev, ...JSON.parse(savedSettings) }));
       }
       setIsLoading(false);
     };
@@ -36,8 +34,8 @@ const About: React.FC = () => {
       </header>
 
       <div 
-        className="prose prose-gray max-w-none text-gray-800 leading-relaxed text-[16px]"
-        dangerouslySetInnerHTML={{ __html: marked.parse(settings.aboutContent || '') }}
+        className="prose prose-gray max-w-none text-gray-800 leading-relaxed text-[17px]"
+        dangerouslySetInnerHTML={{ __html: settings.aboutContent || '' }}
       />
       
       <div className="mt-20 pt-12 border-t border-gray-100">

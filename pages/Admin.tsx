@@ -4,7 +4,7 @@ import { BlogPost, SiteSettings } from '../types';
 import { INITIAL_POSTS, DEFAULT_SETTINGS } from '../constants';
 import { savePostToCloud, deletePostFromCloud, saveSettingsToCloud, fetchSettingsFromCloud } from '../lib/db';
 // @ts-ignore
-import { marked } from 'https://esm.sh/marked@12.0.0';
+import Quill from 'quill';
 
 const Admin: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -17,7 +17,9 @@ const Admin: React.FC = () => {
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'write' | 'preview' | 'db' | 'ads' | 'about' | 'categories'>('write');
   const [newCategory, setNewCategory] = useState('');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  const quillRef = useRef<any>(null);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
   
   const [currentPost, setCurrentPost] = useState<Partial<BlogPost>>({
     title: '',
@@ -32,6 +34,38 @@ const Admin: React.FC = () => {
   useEffect(() => {
     loadAllData();
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated && activeTab === 'write' && editorContainerRef.current && !quillRef.current) {
+      quillRef.current = new Quill(editorContainerRef.current, {
+        theme: 'snow',
+        placeholder: '당신의 통찰을 자유롭게 기록해보세요 (이미지 복사/붙여넣기 가능)...',
+        modules: {
+          toolbar: [
+            [{ 'header': [1, 2, 3, false] }],
+            ['bold', 'italic', 'underline', 'strike'],
+            [{ 'color': [] }, { 'background': [] }],
+            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+            [{ 'align': [] }],
+            ['link', 'image', 'code-block'],
+            ['clean']
+          ]
+        }
+      });
+
+      quillRef.current.on('text-change', () => {
+        const html = quillRef.current.root.innerHTML;
+        setCurrentPost(prev => ({ ...prev, content: html }));
+      });
+    }
+
+    // 에디터 내용 초기화 (수정 시)
+    if (quillRef.current && currentPost.content) {
+      if (quillRef.current.root.innerHTML !== currentPost.content) {
+        quillRef.current.root.innerHTML = currentPost.content;
+      }
+    }
+  }, [isAuthenticated, activeTab]);
 
   const loadAllData = async () => {
     const savedPosts = localStorage.getItem('crypto_blog_posts');
@@ -83,17 +117,23 @@ const Admin: React.FC = () => {
   };
 
   const addCategory = () => {
-    if (!newCategory || settings.categories.includes(newCategory)) return;
-    const updated = { ...settings, categories: [...settings.categories, newCategory] };
+    if (!newCategory || (settings.categories || []).includes(newCategory)) return;
+    const updated = { ...settings, categories: [...(settings.categories || []), newCategory] };
     setSettings(updated);
     setNewCategory('');
     handleSaveSettings(updated);
   };
 
   const removeCategory = (cat: string) => {
-    const updated = { ...settings, categories: settings.categories.filter(c => c !== cat) };
+    const updated = { ...settings, categories: (settings.categories || []).filter(c => c !== cat) };
     setSettings(updated);
     handleSaveSettings(updated);
+  };
+
+  const stripHtml = (html: string) => {
+    const tmp = document.createElement("DIV");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || "";
   };
 
   const handleCreateOrUpdate = async (e: React.FormEvent) => {
@@ -109,8 +149,11 @@ const Admin: React.FC = () => {
     const date = new Date().toISOString().split('T')[0];
     let newPostList: BlogPost[];
 
+    const plainText = stripHtml(currentPost.content || '');
+    const excerpt = currentPost.excerpt || (plainText.slice(0, 140) + '...');
+
     if (isEditing && currentPost.id) {
-      const updatedPost = { ...currentPost, slug, date } as BlogPost;
+      const updatedPost = { ...currentPost, excerpt, slug, date } as BlogPost;
       newPostList = posts.map(p => p.id === currentPost.id ? updatedPost : p);
       await savePostToCloud(updatedPost);
       setSaveStatus('업데이트 완료');
@@ -118,9 +161,9 @@ const Admin: React.FC = () => {
       const newPost: BlogPost = {
         id: Date.now().toString(),
         title: currentPost.title as string,
-        excerpt: currentPost.excerpt || (currentPost.content?.slice(0, 100) + '...'),
+        excerpt: excerpt,
         content: currentPost.content as string,
-        category: currentPost.category || (settings.categories[0] || 'General'),
+        category: currentPost.category || (settings.categories?.[0] || 'General'),
         author: currentPost.author || '김병준',
         date,
         image: currentPost.image || `https://picsum.photos/seed/${Date.now()}/800/450`,
@@ -154,11 +197,12 @@ const Admin: React.FC = () => {
   const resetForm = () => {
     setIsEditing(false);
     setActiveTab('write');
+    if (quillRef.current) quillRef.current.root.innerHTML = '';
     setCurrentPost({ 
       title: '', 
       excerpt: '', 
       content: '', 
-      category: settings.categories[0] || '', 
+      category: settings.categories?.[0] || '', 
       author: '김병준', 
       image: '', 
       tags: [] 
@@ -208,7 +252,7 @@ const Admin: React.FC = () => {
             <button onClick={addCategory} className="px-8 py-4 bg-black text-white rounded-2xl font-black text-xs uppercase tracking-widest">추가</button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {settings.categories.map(cat => (
+            {(settings.categories || []).map(cat => (
               <div key={cat} className="bg-gray-50 p-4 rounded-2xl border border-gray-100 flex items-center justify-between">
                 <span className="font-bold text-gray-800 text-sm">{cat}</span>
                 <button onClick={() => removeCategory(cat)} className="text-gray-300 hover:text-red-500 transition-colors">
@@ -228,11 +272,11 @@ const Admin: React.FC = () => {
         <section className="bg-white border border-gray-100 p-8 rounded-3xl space-y-8">
           <h2 className="text-xl font-black">AdSense Configuration</h2>
           <div className="space-y-4">
-            <input className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl" value={settings.adConfig.clientId} onChange={e => setSettings({...settings, adConfig: {...settings.adConfig, clientId: e.target.value}})} placeholder="Client ID" />
+            <input className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl" value={settings.adConfig?.clientId} onChange={e => setSettings({...settings, adConfig: {...settings.adConfig, clientId: e.target.value}})} placeholder="Client ID" />
             <div className="grid grid-cols-3 gap-4">
-              <input className="px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl" value={settings.adConfig.mainPageSlot} onChange={e => setSettings({...settings, adConfig: {...settings.adConfig, mainPageSlot: e.target.value}})} placeholder="Main Slot" />
-              <input className="px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl" value={settings.adConfig.postTopSlot} onChange={e => setSettings({...settings, adConfig: {...settings.adConfig, postTopSlot: e.target.value}})} placeholder="Top Slot" />
-              <input className="px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl" value={settings.adConfig.postBottomSlot} onChange={e => setSettings({...settings, adConfig: {...settings.adConfig, postBottomSlot: e.target.value}})} placeholder="Bottom Slot" />
+              <input className="px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl" value={settings.adConfig?.mainPageSlot} onChange={e => setSettings({...settings, adConfig: {...settings.adConfig, mainPageSlot: e.target.value}})} placeholder="Main Slot" />
+              <input className="px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl" value={settings.adConfig?.postTopSlot} onChange={e => setSettings({...settings, adConfig: {...settings.adConfig, postTopSlot: e.target.value}})} placeholder="Top Slot" />
+              <input className="px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl" value={settings.adConfig?.postBottomSlot} onChange={e => setSettings({...settings, adConfig: {...settings.adConfig, postBottomSlot: e.target.value}})} placeholder="Bottom Slot" />
             </div>
           </div>
           <button onClick={() => handleSaveSettings()} className="w-full bg-black text-white py-4 rounded-xl font-bold">광고 정보 저장</button>
@@ -240,30 +284,31 @@ const Admin: React.FC = () => {
       ) : (
         <>
           <section className="bg-white border border-gray-100 p-8 rounded-3xl space-y-6 shadow-sm">
-            <h2 className="text-xl font-black">Write Insight</h2>
+            <div className="flex justify-between items-center mb-2">
+              <h2 className="text-xl font-black">Write Insight</h2>
+              {isEditing && <button onClick={resetForm} className="text-xs font-bold text-gray-400 hover:text-black">신규 작성으로 전환</button>}
+            </div>
             <form onSubmit={handleCreateOrUpdate} className="space-y-6">
               <input required className="w-full px-4 py-3 bg-gray-50 border-none outline-none font-black text-xl" value={currentPost.title} onChange={e => setCurrentPost({...currentPost, title: e.target.value})} placeholder="제목" />
               <div className="grid grid-cols-2 gap-4">
                 <select className="px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl font-bold" value={currentPost.category} onChange={e => setCurrentPost({...currentPost, category: e.target.value})}>
-                  {settings.categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  {(settings.categories || []).map(cat => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
-                <input className="px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl font-bold" value={currentPost.image} onChange={e => setCurrentPost({...currentPost, image: e.target.value})} placeholder="이미지 URL" />
+                <input className="px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl font-bold" value={currentPost.image} onChange={e => setCurrentPost({...currentPost, image: e.target.value})} placeholder="커버 이미지 URL (비워두면 자동)" />
               </div>
-              <div className="flex bg-gray-100 p-1 rounded-xl w-fit space-x-1">
-                <button type="button" onClick={() => setActiveTab('write')} className={`px-5 py-2 rounded-lg text-xs font-black ${activeTab === 'write' ? 'bg-white shadow-sm' : 'text-gray-400'}`}>EDITOR</button>
-                <button type="button" onClick={() => setActiveTab('preview')} className={`px-5 py-2 rounded-lg text-xs font-black ${activeTab === 'preview' ? 'bg-white shadow-sm' : 'text-gray-400'}`}>PREVIEW</button>
+              
+              <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden min-h-[500px] flex flex-col">
+                <div ref={editorContainerRef}></div>
               </div>
-              {activeTab === 'write' ? (
-                <textarea required rows={15} className="w-full px-6 py-4 bg-gray-50 border-none outline-none resize-none font-sans text-sm leading-relaxed rounded-2xl" value={currentPost.content} onChange={e => setCurrentPost({...currentPost, content: e.target.value})} placeholder="마크다운으로 내용을 입력하세요" />
-              ) : (
-                <div className="p-10 bg-white border border-gray-50 rounded-2xl prose prose-sm max-w-none min-h-[400px]" dangerouslySetInnerHTML={{ __html: marked.parse(currentPost.content || '') }} />
-              )}
-              <button type="submit" className="w-full bg-black text-white py-4 rounded-xl font-black">{isEditing ? '글 수정' : '글 발행'}</button>
+
+              <button type="submit" className="w-full bg-black text-white py-5 rounded-2xl font-black shadow-xl shadow-gray-100 hover:scale-[1.01] transition-all">
+                {isEditing ? '변경사항 저장하기' : '인사이트 발행하기'}
+              </button>
             </form>
           </section>
 
           <section className="space-y-4">
-            <h2 className="text-xl font-black">Posts ({posts.length})</h2>
+            <h2 className="text-xl font-black">Recent Posts ({posts.length})</h2>
             <div className="grid grid-cols-1 gap-4">
               {posts.map(post => (
                 <div key={post.id} className="flex items-center justify-between p-5 bg-white border border-gray-100 rounded-2xl group hover:border-black transition-all">
@@ -275,7 +320,13 @@ const Admin: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => { setCurrentPost(post); setIsEditing(true); window.scrollTo({top: 0, behavior: 'smooth'}); }} className="p-2 text-gray-400 hover:text-black">수정</button>
+                    <button onClick={() => { 
+                      setCurrentPost(post); 
+                      setIsEditing(true); 
+                      setActiveTab('write');
+                      if (quillRef.current) quillRef.current.root.innerHTML = post.content;
+                      window.scrollTo({top: 0, behavior: 'smooth'}); 
+                    }} className="p-2 text-gray-400 hover:text-black">수정</button>
                     <button onClick={() => deletePost(post.id)} className="p-2 text-gray-400 hover:text-red-500">삭제</button>
                   </div>
                 </div>

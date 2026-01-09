@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { BlogPost, Comment, SiteSettings } from '../types';
@@ -5,8 +6,6 @@ import SEO from '../components/SEO';
 import AdSense from '../components/AdSense';
 import { DEFAULT_SETTINGS } from '../constants';
 import { fetchPostBySlugFromCloud, savePostToCloud, fetchSettingsFromCloud } from '../lib/db';
-// @ts-ignore
-import { marked } from 'https://esm.sh/marked@12.0.0';
 
 const PostDetail: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -21,11 +20,9 @@ const PostDetail: React.FC = () => {
     const loadData = async () => {
       setIsLoading(true);
       
-      // Load Settings
       const cloudSettings = await fetchSettingsFromCloud();
       if (cloudSettings) setSettings(prev => ({ ...prev, ...cloudSettings }));
 
-      // Load Post - Local first
       const savedPosts = localStorage.getItem('crypto_blog_posts');
       let foundPost: BlogPost | null = null;
       if (savedPosts) {
@@ -33,7 +30,6 @@ const PostDetail: React.FC = () => {
         if (foundPost) setPost(foundPost);
       }
 
-      // Load Post - Cloud sync
       if (slug) {
         try {
           const cloudPost = await fetchPostBySlugFromCloud(slug);
@@ -47,7 +43,6 @@ const PostDetail: React.FC = () => {
       }
 
       if (!foundPost && !isLoading) {
-        // Only navigate if we've finished loading and still have no post
         setTimeout(() => { if (!post) navigate('/'); }, 2000);
       }
       
@@ -97,7 +92,13 @@ const PostDetail: React.FC = () => {
 
   return (
     <article className="max-w-xl mx-auto pb-20">
-      <SEO title={post.title} description={post.excerpt} keywords={post.tags.join(', ')} image={post.image} article={true} />
+      <SEO 
+        title={post.title} 
+        description={post.excerpt} 
+        keywords={post.tags?.join(', ') || post.category} 
+        image={post.image} 
+        article={true} 
+      />
       
       <header className="mb-10">
         <div className="flex items-center space-x-2 text-[10px] font-bold text-black uppercase mb-4 tracking-wider">
@@ -108,21 +109,19 @@ const PostDetail: React.FC = () => {
         <h1 className="text-2xl md:text-4xl font-black text-gray-900 leading-tight mb-6">{post.title}</h1>
       </header>
 
-      {/* 상단 광고 */}
-      <AdSense clientId={settings.adConfig.clientId} slot={settings.adConfig.postTopSlot} className="!my-8" />
+      <AdSense clientId={settings.adConfig?.clientId || ''} slot={settings.adConfig?.postTopSlot || ''} className="!my-8" />
 
       <div className="mb-12 rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 shadow-sm">
         <img src={post.image} alt={post.title} className="w-full h-auto object-cover max-h-[400px]" />
       </div>
 
-      {/* 본문 마크다운 렌더링 */}
+      {/* 본문 HTML 렌더링 */}
       <div 
-        className="prose prose-sm prose-gray max-w-none text-gray-800 leading-relaxed text-[16px] space-y-1"
-        dangerouslySetInnerHTML={{ __html: marked.parse(post.content || '') }}
+        className="ql-editor prose prose-sm prose-gray max-w-none text-gray-800 leading-relaxed text-[17px] !p-0"
+        dangerouslySetInnerHTML={{ __html: post.content || '' }}
       />
 
-      {/* 하단 광고 */}
-      <AdSense clientId={settings.adConfig.clientId} slot={settings.adConfig.postBottomSlot} className="mt-16 mb-8" />
+      <AdSense clientId={settings.adConfig?.clientId || ''} slot={settings.adConfig?.postBottomSlot || ''} className="mt-16 mb-8" />
 
       <footer className="mt-16 pt-12 border-t border-gray-100">
         <section>
@@ -151,10 +150,10 @@ const PostDetail: React.FC = () => {
           </form>
 
           <div className="space-y-6">
-            {post.comments?.length === 0 ? (
+            {!post.comments || post.comments.length === 0 ? (
               <p className="text-center py-10 text-gray-400 text-sm font-medium">첫 번째 댓글을 남겨보세요.</p>
             ) : (
-              post.comments?.slice().reverse().map(comment => (
+              post.comments.slice().reverse().map(comment => (
                 <div key={comment.id} className="group">
                   <div className="flex justify-between items-center mb-2">
                     <span className="font-black text-gray-900 text-sm">{comment.author}</span>
