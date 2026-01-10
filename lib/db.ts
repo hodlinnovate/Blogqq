@@ -114,12 +114,12 @@ export const fetchPostAnalytics = async (postId: string) => {
 
   try {
     const { data, error } = await supabase.from('analytics').select('referrer').eq('post_id', postId);
-    if (error) return [];
+    if (error || !data) return [];
     
     // 유입 경로별 카운트 계산
     const counts: Record<string, number> = {};
-    data.forEach(item => {
-      const ref = item.referrer;
+    data.forEach((item: any) => {
+      const ref = item.referrer || 'Unknown';
       counts[ref] = (counts[ref] || 0) + 1;
     });
 
@@ -127,6 +127,7 @@ export const fetchPostAnalytics = async (postId: string) => {
       .map(([source, count]) => ({ source, count }))
       .sort((a, b) => b.count - a.count);
   } catch (e) {
+    console.error("Analytics fetch exception:", e);
     return [];
   }
 };
