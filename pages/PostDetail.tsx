@@ -5,7 +5,7 @@ import { BlogPost, Comment, SiteSettings } from '../types';
 import SEO from '../components/SEO';
 import AdSense from '../components/AdSense';
 import { DEFAULT_SETTINGS } from '../constants';
-import { fetchPostBySlugFromCloud, savePostToCloud, fetchSettingsFromCloud } from '../lib/db';
+import { fetchPostBySlugFromCloud, savePostToCloud, fetchSettingsFromCloud, incrementPostViews, recordVisit } from '../lib/db';
 
 const PostDetail: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -36,6 +36,10 @@ const PostDetail: React.FC = () => {
           if (cloudPost) {
             setPost(cloudPost);
             foundPost = cloudPost;
+            
+            // 조회수 증가 및 유입 경로 기록 (클라우드 데이터인 경우에만)
+            incrementPostViews(cloudPost.id);
+            recordVisit(cloudPost.id, document.referrer);
           }
         } catch (e) {
           console.error("Cloud fetch failed", e);
@@ -105,6 +109,8 @@ const PostDetail: React.FC = () => {
           <span className="bg-gray-100 px-2 py-1 rounded">{post.category}</span>
           <span className="text-gray-200">•</span>
           <span className="text-gray-400 font-medium">{post.date}</span>
+          <span className="text-gray-200">•</span>
+          <span className="text-gray-400 font-medium italic">Views {post.views || 0}</span>
         </div>
         <h1 className="text-2xl md:text-4xl font-black text-gray-900 leading-tight mb-6">{post.title}</h1>
       </header>
@@ -115,7 +121,6 @@ const PostDetail: React.FC = () => {
         <img src={post.image} alt={post.title} className="w-full h-auto object-cover max-h-[400px]" />
       </div>
 
-      {/* 본문 HTML 렌더링 */}
       <div 
         className="ql-editor prose prose-sm prose-gray max-w-none text-gray-800 leading-relaxed text-[17px] !p-0"
         dangerouslySetInnerHTML={{ __html: post.content || '' }}

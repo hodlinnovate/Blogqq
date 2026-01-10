@@ -77,6 +77,60 @@ export const savePostToCloud = async (post: BlogPost) => {
   }
 };
 
+export const incrementPostViews = async (postId: string) => {
+  const supabase = getDbClient();
+  if (!supabase) return;
+
+  try {
+    // Supabase RPC를 사용하는 것이 좋으나, 간단하게 현재 값 + 1 업데이트
+    const { data: currentPost } = await supabase.from('posts').select('views').eq('id', postId).single();
+    const newViews = (currentPost?.views || 0) + 1;
+    await supabase.from('posts').update({ views: newViews }).eq('id', postId);
+  } catch (e) {
+    console.error("Increment Views Error:", e);
+  }
+};
+
+export const recordVisit = async (postId: string, referrer: string) => {
+  const supabase = getDbClient();
+  if (!supabase) return;
+
+  try {
+    // analytics 테이블에 방문 기록 저장
+    const source = referrer || 'Direct / Bookmark';
+    await supabase.from('analytics').insert({
+      post_id: postId,
+      referrer: source,
+      timestamp: new Date().toISOString()
+    });
+  } catch (e) {
+    // analytics 테이블이 없는 경우 조용히 넘어감
+  }
+};
+
+export const fetchPostAnalytics = async (postId: string) => {
+  const supabase = getDbClient();
+  if (!supabase) return [];
+
+  try {
+    const { data, error } = await supabase.from('analytics').select('referrer').eq('post_id', postId);
+    if (error) return [];
+    
+    // 유입 경로별 카운트 계산
+    const counts: Record<string, number> = {};
+    data.forEach(item => {
+      const ref = item.referrer;
+      counts[ref] = (counts[ref] || 0) + 1;
+    });
+
+    return Object.entries(counts)
+      .map(([source, count]) => ({ source, count }))
+      .sort((a, b) => b.count - a.count);
+  } catch (e) {
+    return [];
+  }
+};
+
 export const deletePostFromCloud = async (id: string) => {
   const supabase = getDbClient();
   if (!supabase) {

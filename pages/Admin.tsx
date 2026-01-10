@@ -8,7 +8,8 @@ import {
   saveSettingsToCloud, 
   fetchSettingsFromCloud, 
   isCloudConnected, 
-  fetchPostsFromCloud 
+  fetchPostsFromCloud,
+  fetchPostAnalytics
 } from '../lib/db';
 // @ts-ignore
 import Quill from 'quill';
@@ -27,6 +28,10 @@ const Admin: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AdminTab>('write');
   const [cloudActive, setCloudActive] = useState(false);
   
+  // 분석 데이터 상태
+  const [selectedPostAnalytics, setSelectedPostAnalytics] = useState<{source: string, count: number}[] | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
   const postQuillRef = useRef<any>(null);
   const postEditorRef = useRef<HTMLDivElement>(null);
   const aboutQuillRef = useRef<any>(null);
@@ -51,7 +56,6 @@ const Admin: React.FC = () => {
     setCloudActive(isCloudConnected());
   };
 
-  // 포스트 에디터 초기화
   useEffect(() => {
     if (isAuthenticated && activeTab === 'write' && postEditorRef.current && !postQuillRef.current) {
       postQuillRef.current = new Quill(postEditorRef.current, {
@@ -79,7 +83,6 @@ const Admin: React.FC = () => {
     }
   }, [isAuthenticated, activeTab, isEditing]);
 
-  // 소개 페이지 에디터 초기화
   useEffect(() => {
     if (isAuthenticated && activeTab === 'settings' && aboutEditorRef.current && !aboutQuillRef.current) {
       aboutQuillRef.current = new Quill(aboutEditorRef.current, {
@@ -106,7 +109,6 @@ const Admin: React.FC = () => {
   }, [isAuthenticated, activeTab]);
 
   const loadAllData = async () => {
-    // 1. 설정 불러오기
     const cloudSettings = await fetchSettingsFromCloud();
     if (cloudSettings) {
       setSettings(prev => ({ ...prev, ...cloudSettings }));
@@ -115,7 +117,6 @@ const Admin: React.FC = () => {
       if (savedSettings) setSettings(prev => ({ ...prev, ...JSON.parse(savedSettings) }));
     }
 
-    // 2. 포스트 불러오기
     const cloudPosts = await fetchPostsFromCloud();
     if (cloudPosts && cloudPosts.length > 0) {
       setPosts(cloudPosts);
@@ -195,6 +196,14 @@ const Admin: React.FC = () => {
     setTimeout(() => setSaveStatus(null), 3000);
   };
 
+  const handleShowAnalytics = async (postId: string) => {
+    setIsAnalyzing(true);
+    setSelectedPostAnalytics(null);
+    const data = await fetchPostAnalytics(postId);
+    setSelectedPostAnalytics(data);
+    setIsAnalyzing(false);
+  };
+
   const resetPostForm = () => {
     setIsEditing(false);
     setCurrentPost({ title: '', excerpt: '', content: '', category: settings.categories[0], author: '김병준', image: '', tags: [] });
@@ -205,7 +214,6 @@ const Admin: React.FC = () => {
     setCurrentPost(post);
     setIsEditing(true);
     setActiveTab('write');
-    // useEffect에서 Quill root.innerHTML 처리됨
   };
 
   if (!isAuthenticated) {
@@ -238,7 +246,7 @@ const Admin: React.FC = () => {
           {(['write', 'manage', 'settings', 'db', 'ads'] as AdminTab[]).map(tab => (
             <button 
               key={tab}
-              onClick={() => setActiveTab(tab)} 
+              onClick={() => { setActiveTab(tab); setSelectedPostAnalytics(null); }} 
               className={`px-4 py-2 rounded-lg font-bold text-xs transition-all ${activeTab === tab ? 'bg-black text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
             >
               {tab === 'write' ? '글 작성' : tab === 'manage' ? '글 관리' : tab === 'settings' ? '사이트 설정' : tab === 'db' ? 'DB' : '광고'}
@@ -254,7 +262,6 @@ const Admin: React.FC = () => {
         </div>
       )}
 
-      {/* 1. 글 작성 탭 */}
       {activeTab === 'write' && (
         <section className="bg-white border p-8 rounded-3xl space-y-6 animate-in fade-in duration-300">
           <div className="flex justify-between items-center">
@@ -293,24 +300,61 @@ const Admin: React.FC = () => {
         </section>
       )}
 
-      {/* 2. 글 관리 탭 */}
       {activeTab === 'manage' && (
-        <section className="space-y-4 animate-in fade-in duration-300">
-          <h2 className="text-xl font-black">발행된 포스트 ({posts.length})</h2>
+        <section className="space-y-6 animate-in fade-in duration-300">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-black">발행된 포스트 ({posts.length})</h2>
+            <button onClick={loadAllData} className="text-[10px] font-black text-gray-300 uppercase tracking-widest hover:text-black">Refresh Data</button>
+          </div>
+          
           <div className="bg-white border rounded-3xl overflow-hidden divide-y divide-gray-50">
             {posts.length === 0 ? (
               <div className="p-20 text-center text-gray-300 font-bold">작성된 글이 없습니다.</div>
             ) : (
               posts.map(p => (
-                <div key={p.id} className="p-6 flex justify-between items-center group hover:bg-gray-50 transition-colors">
-                  <div className="min-w-0 pr-10">
-                    <h4 className="font-bold text-sm truncate">{p.title}</h4>
-                    <p className="text-[10px] text-gray-400 font-bold uppercase mt-1">{p.category} • {p.date}</p>
+                <div key={p.id} className="p-6 group hover:bg-gray-50 transition-colors">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="min-w-0 pr-10">
+                      <h4 className="font-bold text-sm truncate">{p.title}</h4>
+                      <div className="flex items-center gap-3 mt-1">
+                        <p className="text-[10px] text-gray-400 font-bold uppercase">{p.category} • {p.date}</p>
+                        <span className="w-1 h-1 bg-gray-200 rounded-full"></span>
+                        <div className="flex items-center gap-1">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-gray-400"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                          <span className="text-[10px] font-black text-gray-900">{p.views || 0}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-4 shrink-0">
+                      <button onClick={() => handleShowAnalytics(p.id)} className="text-xs font-black text-blue-500 hover:underline">통계</button>
+                      <button onClick={() => startEditPost(p)} className="text-xs font-black text-black hover:underline">수정</button>
+                      <button onClick={() => handleDeletePost(p.id)} className="text-xs font-black text-red-500 hover:underline">삭제</button>
+                    </div>
                   </div>
-                  <div className="flex gap-4 shrink-0">
-                    <button onClick={() => startEditPost(p)} className="text-xs font-black text-black hover:underline">수정</button>
-                    <button onClick={() => handleDeletePost(p.id)} className="text-xs font-black text-red-500 hover:underline">삭제</button>
-                  </div>
+
+                  {/* 해당 포스트의 분석 데이터가 선택되었을 때만 표시 */}
+                  {selectedPostAnalytics && selectedPostAnalytics.length > 0 && selectedPostAnalytics[0]?.source && (
+                    <div className="mt-4 p-4 bg-gray-50 rounded-2xl border border-gray-100 animate-in slide-in-from-top-2 duration-300">
+                      <h5 className="text-[10px] font-black uppercase text-gray-400 mb-3 tracking-widest">Top Traffic Sources</h5>
+                      <div className="space-y-2">
+                        {selectedPostAnalytics.slice(0, 5).map((stat, idx) => (
+                          <div key={idx} className="flex items-center justify-between">
+                            <span className="text-[11px] font-medium text-gray-600 truncate max-w-[200px]">{stat.source}</span>
+                            <div className="flex items-center gap-2">
+                              <div className="w-24 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-black rounded-full" 
+                                  style={{ width: `${(stat.count / selectedPostAnalytics[0].count) * 100}%` }}
+                                ></div>
+                              </div>
+                              <span className="text-[10px] font-black text-black min-w-[20px] text-right">{stat.count}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {isAnalyzing && <div className="mt-2 text-[10px] font-bold text-gray-300 animate-pulse">분석 데이터를 불러오는 중...</div>}
                 </div>
               ))
             )}
@@ -318,7 +362,6 @@ const Admin: React.FC = () => {
         </section>
       )}
 
-      {/* 3. 사이트 설정 탭 */}
       {activeTab === 'settings' && (
         <section className="bg-white border p-8 rounded-3xl space-y-8 animate-in fade-in duration-300">
           <h2 className="text-xl font-black">사이트 브랜딩 및 소개</h2>
@@ -348,7 +391,6 @@ const Admin: React.FC = () => {
         </section>
       )}
 
-      {/* 4. DB 설정 탭 */}
       {activeTab === 'db' && (
         <section className="bg-white border p-8 rounded-3xl space-y-8 animate-in fade-in duration-300">
           <h2 className="text-xl font-black">Database Connection</h2>
@@ -369,7 +411,6 @@ const Admin: React.FC = () => {
         </section>
       )}
 
-      {/* 5. 광고 설정 탭 */}
       {activeTab === 'ads' && (
         <section className="bg-white border p-8 rounded-3xl space-y-8 animate-in fade-in duration-300">
           <h2 className="text-xl font-black">Google AdSense 설정</h2>
