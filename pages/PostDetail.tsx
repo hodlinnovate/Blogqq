@@ -104,6 +104,9 @@ const PostDetail: React.FC = () => {
     );
   }
 
+  // 현재 페이지의 전체 URL 생성
+  const currentUrl = `${window.location.origin}/post/${slug}`;
+
   return (
     <article className="max-w-5xl mx-auto pb-20 px-6 md:px-8">
       <SEO 
@@ -111,6 +114,7 @@ const PostDetail: React.FC = () => {
         description={post.excerpt} 
         keywords={post.tags?.join(', ') || post.category} 
         image={post.image} 
+        url={currentUrl}
         article={true} 
       />
       
@@ -136,7 +140,6 @@ const PostDetail: React.FC = () => {
 
       {post.image && (
         <div className="mb-8 rounded-lg overflow-hidden border border-gray-100 shadow-sm bg-gray-50">
-          {/* 이미지가 너무 세로로 길지 않게 높이를 고정(h-48 ~ h-80)하고 cover 처리하여 가로로 긴 비율 유지 */}
           <img src={post.image} alt={post.title} className="w-full h-48 md:h-80 object-cover" />
         </div>
       )}
