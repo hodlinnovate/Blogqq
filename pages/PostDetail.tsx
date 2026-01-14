@@ -74,6 +74,18 @@ const PostDetail: React.FC = () => {
     setCommentText('');
   };
 
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: post?.title,
+        url: window.location.href,
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      alert('링크가 복사되었습니다.');
+    }
+  };
+
   if (isLoading && !post) {
     return (
       <div className="py-32 flex flex-col items-center justify-center space-y-4">
@@ -93,7 +105,7 @@ const PostDetail: React.FC = () => {
   }
 
   return (
-    <article className="max-w-5xl mx-auto pb-32">
+    <article className="max-w-5xl mx-auto pb-20 px-6 md:px-8">
       <SEO 
         title={post.title} 
         description={post.excerpt} 
@@ -102,69 +114,76 @@ const PostDetail: React.FC = () => {
         article={true} 
       />
       
-      <header className="mb-12">
-        <div className="flex items-center space-x-3 text-[10px] font-bold text-black uppercase mb-6 tracking-[0.15em]">
-          <span className="bg-gray-100 px-3 py-1 rounded"># {post.category}</span>
-          <span className="text-gray-200">•</span>
-          <span className="text-gray-400 font-medium">{post.date}</span>
-          <span className="text-gray-200">•</span>
-          <span className="text-gray-400 font-medium italic">Views {post.views || 0}</span>
+      <header className="mb-6 mt-8 border-b border-gray-100 pb-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div className="flex-1">
+                <div className="flex items-center space-x-2 text-[11px] font-bold text-gray-500 mb-2 uppercase tracking-wide">
+                    <span className="bg-gray-100 text-black px-2 py-0.5 rounded-sm">{post.category}</span>
+                    <span className="text-gray-300">/</span>
+                    <span>{post.date}</span>
+                </div>
+                <h1 className="text-2xl md:text-3xl font-black text-gray-900 leading-tight tracking-tight">
+                    {post.title}
+                </h1>
+            </div>
+            <button onClick={handleShare} className="shrink-0 p-2 text-gray-400 hover:text-black transition-colors self-start md:self-end">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+            </button>
         </div>
-        <h1 className="text-3xl md:text-6xl font-black text-gray-900 leading-[1.2] mb-10 tracking-tight">{post.title}</h1>
       </header>
 
-      <AdSense clientId={settings.adConfig?.clientId || ''} slot={settings.adConfig?.postTopSlot || ''} className="!my-12" />
+      <AdSense clientId={settings.adConfig?.clientId || ''} slot={settings.adConfig?.postTopSlot || ''} className="!my-6" />
 
       {post.image && (
-        <div className="mb-16 rounded-3xl overflow-hidden bg-gray-50 border border-gray-100 shadow-sm">
-          <img src={post.image} alt={post.title} className="w-full h-auto object-cover max-h-[700px]" />
+        <div className="mb-8 rounded-lg overflow-hidden border border-gray-100 shadow-sm bg-gray-50">
+          {/* 이미지가 너무 세로로 길지 않게 높이를 고정(h-48 ~ h-80)하고 cover 처리하여 가로로 긴 비율 유지 */}
+          <img src={post.image} alt={post.title} className="w-full h-48 md:h-80 object-cover" />
         </div>
       )}
 
       <div 
-        className="ql-editor prose prose-gray max-w-none text-gray-800 leading-[1.8] text-[18px] md:text-[22px] !p-0"
+        className="ql-editor prose prose-gray max-w-none text-gray-900 leading-relaxed text-base md:text-[17px] !p-0 tracking-normal"
         dangerouslySetInnerHTML={{ __html: post.content || '' }}
       />
 
-      <AdSense clientId={settings.adConfig?.clientId || ''} slot={settings.adConfig?.postBottomSlot || ''} className="mt-24 mb-12" />
+      <AdSense clientId={settings.adConfig?.clientId || ''} slot={settings.adConfig?.postBottomSlot || ''} className="mt-12 mb-8" />
 
-      <footer className="mt-24 pt-16 border-t border-gray-100">
+      <footer className="mt-12 pt-8 border-t border-gray-100">
         <section>
-          <h3 className="text-2xl font-black text-gray-900 mb-10">대화 {post.comments?.length || 0}</h3>
+          <h3 className="text-lg font-bold text-gray-900 mb-6">댓글 {post.comments?.length || 0}</h3>
           
-          <form onSubmit={handleCommentSubmit} className="mb-16 space-y-6 bg-gray-50 p-10 rounded-[2.5rem]">
-            <div className="grid grid-cols-1 gap-6">
+          <form onSubmit={handleCommentSubmit} className="mb-10">
+            <div className="flex flex-col md:flex-row gap-3">
               <input 
                 required 
                 type="text" 
-                placeholder="작성자 성함" 
-                className="w-full px-6 py-4 bg-white border border-gray-100 rounded-2xl text-base focus:border-black outline-none transition-all font-bold" 
+                placeholder="이름" 
+                className="md:w-32 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:border-black outline-none transition-all font-bold" 
                 value={commentName} 
                 onChange={(e) => setCommentName(e.target.value)} 
               />
-              <textarea 
+              <input 
                 required 
-                rows={4} 
-                placeholder="인사이트를 공유해주세요..." 
-                className="w-full px-6 py-4 bg-white border border-gray-100 rounded-2xl text-base resize-none focus:border-black outline-none transition-all font-medium" 
+                placeholder="의견을 남겨주세요..." 
+                className="flex-grow px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:border-black outline-none transition-all font-medium" 
                 value={commentText} 
                 onChange={(e) => setCommentText(e.target.value)} 
               />
+              <button type="submit" className="bg-black text-white px-6 py-2.5 rounded-lg text-xs font-bold uppercase hover:bg-gray-800 transition-all shrink-0">등록</button>
             </div>
-            <button type="submit" className="bg-black text-white px-10 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-gray-200 active:scale-95">댓글 등록</button>
           </form>
 
-          <div className="space-y-8">
+          <div className="space-y-4">
             {!post.comments || post.comments.length === 0 ? (
-              <p className="text-center py-16 text-gray-300 text-sm font-bold uppercase tracking-widest">이 글의 첫 번째 대화 상대가 되어주세요.</p>
+              <p className="py-4 text-gray-300 text-xs">등록된 댓글이 없습니다.</p>
             ) : (
               post.comments.slice().reverse().map(comment => (
-                <div key={comment.id} className="group">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="font-black text-gray-900 text-base">{comment.author}</span>
-                    <span className="text-[11px] text-gray-300 font-bold uppercase tracking-tight">{comment.date}</span>
+                <div key={comment.id} className="group border-b border-gray-50 pb-4 last:border-0">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="font-bold text-gray-900 text-sm">{comment.author}</span>
+                    <span className="text-[10px] text-gray-400">{comment.date}</span>
                   </div>
-                  <p className="text-gray-600 text-[16px] leading-relaxed font-medium bg-white group-hover:bg-gray-50 p-6 rounded-2xl border border-transparent group-hover:border-gray-100 transition-all shadow-sm group-hover:shadow-none">
+                  <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
                     {comment.text}
                   </p>
                 </div>
