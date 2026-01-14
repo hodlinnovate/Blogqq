@@ -65,13 +65,26 @@ const Admin: React.FC = () => {
         theme: 'snow',
         placeholder: '당신의 통찰을 자유롭게 기록해보세요...',
         modules: {
-          toolbar: [
-            [{ 'header': [1, 2, 3, false] }],
-            ['bold', 'italic', 'underline', 'strike'],
-            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-            ['link', 'image', 'code-block'],
-            ['clean']
-          ]
+          toolbar: {
+            container: [
+              [{ 'header': [1, 2, 3, false] }],
+              ['bold', 'italic', 'underline', 'strike'],
+              [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+              ['link', 'image', 'code-block'],
+              ['clean']
+            ],
+            handlers: {
+              image: () => {
+                const url = prompt('이미지 URL을 입력해주세요 (예: https://...):');
+                if (url) {
+                  const range = postQuillRef.current.getSelection();
+                  // range가 null일 경우(포커스 잃음) 맨 끝이나 0에 추가
+                  const index = range ? range.index : postQuillRef.current.getLength();
+                  postQuillRef.current.insertEmbed(index, 'image', url);
+                }
+              }
+            }
+          }
         }
       });
 
@@ -84,6 +97,11 @@ const Admin: React.FC = () => {
         postQuillRef.current.root.innerHTML = currentPost.content;
       }
     }
+
+    // Cleanup function: 탭이 바뀌거나 컴포넌트가 언마운트될 때 인스턴스 초기화
+    return () => {
+      postQuillRef.current = null;
+    };
   }, [isAuthenticated, activeTab, isEditing]);
 
   useEffect(() => {
@@ -109,6 +127,10 @@ const Admin: React.FC = () => {
         aboutQuillRef.current.root.innerHTML = settings.aboutContent;
       }
     }
+
+    return () => {
+      aboutQuillRef.current = null;
+    };
   }, [isAuthenticated, activeTab]);
 
   const loadAllData = async () => {
@@ -310,7 +332,7 @@ const Admin: React.FC = () => {
               <select className="px-4 py-3 bg-gray-50 border rounded-xl font-bold text-sm" value={currentPost.category} onChange={e => setCurrentPost({...currentPost, category: e.target.value})}>
                 {settings.categories.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
-              <input className="px-4 py-3 bg-gray-50 border rounded-xl font-bold text-sm" value={currentPost.image} onChange={e => setCurrentPost({...currentPost, image: e.target.value})} placeholder="이미지 URL (선택)" />
+              <input className="px-4 py-3 bg-gray-50 border rounded-xl font-bold text-sm" value={currentPost.image} onChange={e => setCurrentPost({...currentPost, image: e.target.value})} placeholder="대표 이미지 URL (선택)" />
             </div>
             <textarea 
               className="w-full px-4 py-3 bg-gray-50 border rounded-xl font-bold text-sm resize-none" 
