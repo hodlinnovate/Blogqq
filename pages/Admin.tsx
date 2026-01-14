@@ -75,13 +75,50 @@ const Admin: React.FC = () => {
             ],
             handlers: {
               image: () => {
-                const url = prompt('이미지 URL을 입력해주세요 (예: https://...):');
-                if (url) {
-                  const range = postQuillRef.current.getSelection();
-                  // range가 null일 경우(포커스 잃음) 맨 끝이나 0에 추가
-                  const index = range ? range.index : postQuillRef.current.getLength();
-                  postQuillRef.current.insertEmbed(index, 'image', url);
-                }
+                const input = document.createElement('input');
+                input.setAttribute('type', 'file');
+                input.setAttribute('accept', 'image/*');
+                input.click();
+
+                input.onchange = async () => {
+                  const file = input.files ? input.files[0] : null;
+                  if (!file) return;
+
+                  // 이미지 압축 및 삽입 로직
+                  const reader = new FileReader();
+                  reader.onload = (e) => {
+                    const img = new Image();
+                    img.src = e.target?.result as string;
+                    img.onload = () => {
+                      const canvas = document.createElement('canvas');
+                      const ctx = canvas.getContext('2d');
+                      
+                      // 최대 너비 800px로 제한 (용량 최적화)
+                      const MAX_WIDTH = 800;
+                      let width = img.width;
+                      let height = img.height;
+
+                      if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                      }
+
+                      canvas.width = width;
+                      canvas.height = height;
+                      ctx?.drawImage(img, 0, 0, width, height);
+
+                      // JPEG 포맷, 퀄리티 0.7로 압축
+                      const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                      
+                      const range = postQuillRef.current.getSelection(true);
+                      const index = range ? range.index : postQuillRef.current.getLength();
+                      postQuillRef.current.insertEmbed(index, 'image', compressedDataUrl);
+                      // 이미지 뒤로 커서 이동
+                      postQuillRef.current.setSelection(index + 1);
+                    };
+                  };
+                  reader.readAsDataURL(file);
+                };
               }
             }
           }
@@ -98,7 +135,7 @@ const Admin: React.FC = () => {
       }
     }
 
-    // Cleanup function: 탭이 바뀌거나 컴포넌트가 언마운트될 때 인스턴스 초기화
+    // Cleanup function
     return () => {
       postQuillRef.current = null;
     };
