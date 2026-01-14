@@ -40,19 +40,13 @@ const Category: React.FC = () => {
     return {
       title: `${categoryName} 인사이트 | ${brand}`,
       description: `${categoryName} 관련 최신 트렌드와 기술 분석 리포트를 확인하세요.`,
-      keywords: Array.from(new Set(posts.flatMap(p => p.tags))).join(', ') || categoryName,
-      url: `${window.location.origin}/category/${categoryName}`
+      keywords: Array.from(new Set(posts.flatMap(p => p.tags))).join(', ') || categoryName
     };
   }, [categoryName, posts, settings]);
 
   return (
     <div className="max-w-6xl mx-auto space-y-12">
-      <SEO 
-        title={seoData.title} 
-        description={seoData.description} 
-        keywords={seoData.keywords}
-        url={seoData.url}
-      />
+      <SEO title={seoData.title} description={seoData.description} keywords={seoData.keywords} />
       
       <header className="mb-8 border-b border-gray-100 pb-6">
         <h1 className="text-2xl font-black text-gray-900 tracking-tighter uppercase">{categoryName}</h1>

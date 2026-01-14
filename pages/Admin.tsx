@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { BlogPost, SiteSettings } from '../types';
-import { INITIAL_POSTS, DEFAULT_SETTINGS } from '../constants';
+import { INITIAL_POSTS, DEFAULT_SETTINGS, SITE_CONFIG } from '../constants';
 import { 
   savePostToCloud, 
   deletePostFromCloud, 
@@ -14,7 +14,7 @@ import {
 // @ts-ignore
 import Quill from 'quill';
 
-type AdminTab = 'write' | 'manage' | 'settings' | 'topics' | 'db' | 'ads';
+type AdminTab = 'write' | 'manage' | 'settings' | 'topics' | 'db' | 'ads' | 'seo';
 
 const Admin: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -34,6 +34,9 @@ const Admin: React.FC = () => {
   // 분석 데이터 상태
   const [selectedPostAnalytics, setSelectedPostAnalytics] = useState<{source: string, count: number}[] | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // 사이트맵 생성 상태
+  const [sitemapXml, setSitemapXml] = useState('');
 
   const postQuillRef = useRef<any>(null);
   const postEditorRef = useRef<HTMLDivElement>(null);
@@ -93,7 +96,6 @@ const Admin: React.FC = () => {
                       const canvas = document.createElement('canvas');
                       const ctx = canvas.getContext('2d');
                       
-                      // 최대 너비 800px로 제한 (용량 최적화)
                       const MAX_WIDTH = 800;
                       let width = img.width;
                       let height = img.height;
@@ -107,13 +109,11 @@ const Admin: React.FC = () => {
                       canvas.height = height;
                       ctx?.drawImage(img, 0, 0, width, height);
 
-                      // JPEG 포맷, 퀄리티 0.7로 압축
                       const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
                       
                       const range = postQuillRef.current.getSelection(true);
                       const index = range ? range.index : postQuillRef.current.getLength();
                       postQuillRef.current.insertEmbed(index, 'image', compressedDataUrl);
-                      // 이미지 뒤로 커서 이동
                       postQuillRef.current.setSelection(index + 1);
                     };
                   };
@@ -292,6 +292,41 @@ const Admin: React.FC = () => {
     setIsAnalyzing(false);
   };
 
+  const generateSitemap = () => {
+    // 설정된 사이트 URL을 사용하거나 기본값 사용
+    const baseUrl = (settings.siteUrl || SITE_CONFIG.baseUrl).replace(/\/$/, '');
+    const today = new Date().toISOString().split('T')[0];
+    
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${baseUrl}/</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/about</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>`;
+
+    posts.forEach(post => {
+      xml += `
+  <url>
+    <loc>${baseUrl}/post/${post.slug}</loc>
+    <lastmod>${post.date}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>`;
+    });
+
+    xml += `
+</urlset>`;
+    setSitemapXml(xml);
+  };
+
   const resetPostForm = () => {
     setIsEditing(false);
     setCurrentPost({ title: '', excerpt: '', content: '', category: settings.categories[0], author: '김병준', image: '', tags: [] });
@@ -331,13 +366,13 @@ const Admin: React.FC = () => {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {(['write', 'manage', 'topics', 'settings', 'db', 'ads'] as AdminTab[]).map(tab => (
+          {(['write', 'manage', 'topics', 'settings', 'db', 'ads', 'seo'] as AdminTab[]).map(tab => (
             <button 
               key={tab}
               onClick={() => { setActiveTab(tab); setSelectedPostAnalytics(null); }} 
               className={`px-4 py-2 rounded-lg font-bold text-xs transition-all ${activeTab === tab ? 'bg-black text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
             >
-              {tab === 'write' ? '글 작성' : tab === 'manage' ? '글 관리' : tab === 'topics' ? '토픽 관리' : tab === 'settings' ? '사이트 설정' : tab === 'db' ? 'DB' : '광고'}
+              {tab === 'write' ? '글 작성' : tab === 'manage' ? '글 관리' : tab === 'topics' ? '토픽 관리' : tab === 'settings' ? '사이트 설정' : tab === 'db' ? 'DB' : tab === 'ads' ? '광고' : 'SEO'}
             </button>
           ))}
           <button onClick={() => setIsAuthenticated(false)} className="px-4 py-2 bg-gray-50 text-gray-300 rounded-lg font-bold text-xs ml-4">로그아웃</button>
@@ -488,6 +523,18 @@ const Admin: React.FC = () => {
       {activeTab === 'settings' && (
         <section className="bg-white border p-8 rounded-3xl space-y-8 animate-in fade-in duration-300">
           <h2 className="text-xl font-black">사이트 브랜딩 및 소개</h2>
+          
+          <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100">
+             <label className="text-[10px] font-black uppercase text-blue-500 mb-2 block">내 블로그 주소 (URL)</label>
+             <input 
+               className="w-full px-4 py-3 bg-white border border-blue-200 rounded-xl font-bold text-blue-900 placeholder:text-blue-200" 
+               value={settings.siteUrl || ''} 
+               onChange={e => setSettings({...settings, siteUrl: e.target.value})} 
+               placeholder="https://blog.example.com" 
+             />
+             <p className="mt-2 text-[10px] text-blue-400 font-bold">* 이 주소는 사이트맵(SEO) 생성 시 사용됩니다.</p>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="text-[10px] font-black uppercase text-gray-400 mb-2 block">브랜드 이름 (앞)</label>
@@ -557,6 +604,33 @@ const Admin: React.FC = () => {
               </div>
             </div>
             <button onClick={() => handleSaveSettings()} className="w-full bg-black text-white py-4 rounded-xl font-bold shadow-lg shadow-gray-200">광고 설정 저장</button>
+          </div>
+        </section>
+      )}
+
+      {activeTab === 'seo' && (
+        <section className="bg-white border p-8 rounded-3xl space-y-8 animate-in fade-in duration-300">
+          <div>
+            <h2 className="text-xl font-black mb-2">Sitemap Generator</h2>
+            <p className="text-xs text-gray-500 mb-6">구글 색인을 위해 아래 버튼을 눌러 XML 코드를 생성하세요. 생성된 코드를 프로젝트의 <code>public/sitemap.xml</code> 파일에 붙여넣고 재배포하면 구글이 모든 글을 찾을 수 있습니다.</p>
+            
+            <button onClick={generateSitemap} className="px-6 py-3 bg-black text-white rounded-xl font-bold text-sm mb-6">사이트맵 XML 코드 생성하기</button>
+            
+            {sitemapXml && (
+              <div className="relative group">
+                <textarea 
+                  className="w-full h-64 p-4 bg-gray-50 border rounded-xl font-mono text-[10px] text-gray-600 resize-none outline-none" 
+                  readOnly 
+                  value={sitemapXml}
+                />
+                <button 
+                  onClick={() => {navigator.clipboard.writeText(sitemapXml); alert('복사되었습니다.');}}
+                  className="absolute top-4 right-4 bg-white border px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-gray-100"
+                >
+                  Copy All
+                </button>
+              </div>
+            )}
           </div>
         </section>
       )}

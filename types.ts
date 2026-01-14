@@ -29,6 +29,7 @@ export interface AdConfig {
 }
 
 export interface SiteSettings {
+  siteUrl?: string; // 블로그 실제 도메인 주소
   brandName: string;
   brandSubName: string;
   mainTitle: string;

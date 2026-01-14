@@ -27,11 +27,7 @@ const About: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto py-12 md:py-20">
-      <SEO 
-        title="소개" 
-        description={settings.mainSubtitle} 
-        url={`${window.location.origin}/about`}
-      />
+      <SEO title="소개" description={settings.mainSubtitle} />
       <header className="mb-20 text-center">
         <div className="inline-block px-4 py-1.5 bg-gray-100 rounded-full text-[10px] font-black uppercase tracking-widest mb-6">About Me</div>
         <h1 className="text-4xl md:text-7xl font-black text-gray-900 tracking-tight leading-[1.1]">지식의 기록, <br/>그리고 성장의 공유.</h1>

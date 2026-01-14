@@ -29,6 +29,7 @@ export const INITIAL_POSTS: BlogPost[] = [
 ];
 
 export const DEFAULT_SETTINGS: SiteSettings = {
+  siteUrl: "https://blog.byungjun.org",
   brandName: "김병준의",
   brandSubName: "블로그",
   mainTitle: "김병준의 기술 및 금융 인사이트",

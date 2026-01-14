@@ -23,12 +23,13 @@ const SEO: React.FC<SEOProps> = ({
   const seoDescription = description || SITE_CONFIG.description;
   const seoKeywords = keywords || SITE_CONFIG.keywords;
   const seoImage = image || 'https://picsum.photos/seed/crypto/1200/630';
-  // URL이 명시되지 않은 경우 현재 브라우저의 주소를 사용
-  const seoUrl = url || window.location.href;
+  const seoUrl = url || SITE_CONFIG.baseUrl;
 
   useEffect(() => {
+    // 1. Title 설정
     document.title = seoTitle;
     
+    // 2. Meta Tags 설정 헬퍼 함수
     const updateMeta = (name: string, content: string, property = false) => {
       let element = document.querySelector(`meta[${property ? 'property' : 'name'}="${name}"]`);
       if (!element) {
@@ -37,18 +38,6 @@ const SEO: React.FC<SEOProps> = ({
         document.head.appendChild(element);
       }
       element.setAttribute('content', content);
-    };
-
-    // [중요] Canonical URL(표준 페이지 주소) 설정
-    // 구글 검색 엔진이 중복 페이지로 인식하지 않도록 현재 페이지가 원본임을 명시
-    const updateCanonical = (href: string) => {
-      let link = document.querySelector('link[rel="canonical"]');
-      if (!link) {
-        link = document.createElement('link');
-        link.setAttribute('rel', 'canonical');
-        document.head.appendChild(link);
-      }
-      link.setAttribute('href', href);
     };
 
     updateMeta('description', seoDescription);
@@ -67,8 +56,14 @@ const SEO: React.FC<SEOProps> = ({
     updateMeta('twitter:description', seoDescription);
     updateMeta('twitter:image', seoImage);
 
-    // Canonical Tag 적용
-    updateCanonical(seoUrl);
+    // 3. [중요] Canonical Link 설정 (구글 색인 필수 요소)
+    let canonicalLink = document.querySelector('link[rel="canonical"]');
+    if (!canonicalLink) {
+        canonicalLink = document.createElement('link');
+        canonicalLink.setAttribute('rel', 'canonical');
+        document.head.appendChild(canonicalLink);
+    }
+    canonicalLink.setAttribute('href', seoUrl);
 
   }, [seoTitle, seoDescription, seoKeywords, seoImage, seoUrl, article]);
 
