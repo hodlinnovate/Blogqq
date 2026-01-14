@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { BlogPost, SiteSettings } from '../types';
@@ -36,8 +37,15 @@ const Home: React.FC = () => {
     loadData();
   }, []);
 
+  // HTML 태그를 제거하고 순수 텍스트만 추출하는 함수
+  const stripHtml = (html: string) => {
+    return html.replace(/<[^>]*>?/gm, '');
+  };
+
+  const EXCLUDED_PHRASE = "새로운 인사이트가 업데이트되었습니다.";
+
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-6xl mx-auto">
       <SEO title={settings.brandName + " " + settings.brandSubName} description={settings.mainSubtitle} />
       
       {isLoading ? (
@@ -46,39 +54,47 @@ const Home: React.FC = () => {
         <section className="divide-y divide-gray-50">
           {posts.map((post, index) => (
             <React.Fragment key={post.id}>
-              <article className="group py-10 first:pt-0 last:pb-0">
-                <Link to={`/post/${post.slug}`} className="flex items-start justify-between gap-6">
+              <article className="group py-3 first:pt-0 last:pb-0">
+                <Link to={`/post/${post.slug}`} className="flex items-center justify-between gap-6 md:gap-10">
                   <div className="flex-grow flex flex-col min-w-0">
-                    <div className="flex items-center space-x-2 text-[11px] font-bold text-black uppercase mb-2">
-                      <span className="bg-gray-100 px-1.5 py-0.5 rounded">{post.category}</span>
-                      <span className="text-gray-200">•</span>
-                      <span className="text-gray-400 font-medium">{post.date}</span>
+                    <div className="flex items-center space-x-2 text-[8px] md:text-[9px] font-bold text-gray-400 uppercase mb-0.5 tracking-tight">
+                      <span className="text-black bg-gray-100 px-1.5 py-0.5 rounded">{post.category}</span>
+                      <span>•</span>
+                      <span>{post.date}</span>
                     </div>
-                    <h2 className="text-xl font-bold text-gray-900 group-hover:text-black group-hover:underline transition-all mb-2 leading-tight line-clamp-2">
+                    <h2 className="text-base md:text-lg font-black text-gray-900 group-hover:text-black group-hover:underline transition-all mb-0.5 leading-tight line-clamp-1 tracking-tighter">
                       {post.title}
                     </h2>
-                    <p className="text-gray-400 text-sm leading-relaxed line-clamp-2 font-medium">
-                      {post.excerpt}
+                    {/* 본문 내용 미리보기: 높이와 크기를 대폭 축소 (25% 수준) */}
+                    <p className="text-gray-500 text-[11px] md:text-xs leading-tight line-clamp-1 font-medium mb-1">
+                      {stripHtml(post.content)}
                     </p>
+                    {/* 기존 excerpt 표시 (특정 문구는 제외 및 축소) */}
+                    {post.excerpt && post.excerpt !== EXCLUDED_PHRASE && (
+                      <p className="text-gray-300 text-[8px] md:text-[9px] font-bold uppercase tracking-widest opacity-60">
+                        {post.excerpt}
+                      </p>
+                    )}
                   </div>
                   
-                  <div className="flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-gray-50 border border-gray-100">
-                    <img 
-                      src={post.image} 
-                      alt={post.title}
-                      className="w-full h-full object-cover grayscale transition-all group-hover:grayscale-0 group-hover:scale-105" 
-                    />
-                  </div>
+                  {post.image && (
+                    <div className="flex-shrink-0 w-16 h-16 md:w-24 md:h-24 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 shadow-sm">
+                      <img 
+                        src={post.image} 
+                        alt={post.title}
+                        className="w-full h-full object-cover grayscale transition-all group-hover:grayscale-0 group-hover:scale-105 duration-700" 
+                      />
+                    </div>
+                  )}
                 </Link>
               </article>
 
-              {/* 글과 글 사이 광고 (매 2번째 글 뒤에 삽입) */}
-              {(index + 1) % 2 === 0 && index !== posts.length - 1 && (
-                <div className="py-8 border-t border-gray-50">
+              {(index + 1) % 4 === 0 && index !== posts.length - 1 && (
+                <div className="py-4 border-t border-gray-50">
                   <AdSense 
                     clientId={settings.adConfig.clientId} 
                     slot={settings.adConfig.mainPageSlot} 
-                    className="!my-0" 
+                    className="!my-0 !min-h-[60px]" 
                   />
                 </div>
               )}
@@ -87,9 +103,8 @@ const Home: React.FC = () => {
         </section>
       )}
 
-      {/* 리스트 최하단 광고 */}
       {posts.length > 0 && (
-        <div className="mt-12 pt-12 border-t border-gray-50">
+        <div className="mt-10 pt-10 border-t border-gray-100">
           <AdSense 
             clientId={settings.adConfig.clientId} 
             slot={settings.adConfig.mainPageSlot} 

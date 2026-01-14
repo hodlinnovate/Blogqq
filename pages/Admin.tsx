@@ -14,7 +14,7 @@ import {
 // @ts-ignore
 import Quill from 'quill';
 
-type AdminTab = 'write' | 'manage' | 'settings' | 'db' | 'ads';
+type AdminTab = 'write' | 'manage' | 'settings' | 'topics' | 'db' | 'ads';
 
 const Admin: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -28,6 +28,9 @@ const Admin: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AdminTab>('write');
   const [cloudActive, setCloudActive] = useState(false);
   
+  // 토픽 관리를 위한 상태
+  const [newTopic, setNewTopic] = useState('');
+
   // 분석 데이터 상태
   const [selectedPostAnalytics, setSelectedPostAnalytics] = useState<{source: string, count: number}[] | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -138,12 +141,38 @@ const Admin: React.FC = () => {
     }
   };
 
-  const handleSaveSettings = async () => {
-    localStorage.setItem('crypto_site_settings', JSON.stringify(settings));
-    const success = await saveSettingsToCloud(settings);
+  const handleSaveSettings = async (customSettings?: SiteSettings) => {
+    const targetSettings = customSettings || settings;
+    localStorage.setItem('crypto_site_settings', JSON.stringify(targetSettings));
+    const success = await saveSettingsToCloud(targetSettings);
     checkConnection();
     setSaveStatus(success ? '설정 저장 완료!' : '로컬에만 저장됨 (연결 확인)');
     setTimeout(() => setSaveStatus(null), 3000);
+  };
+
+  const handleAddTopic = () => {
+    if (!newTopic.trim()) return;
+    if (settings.categories.includes(newTopic.trim())) {
+      alert('이미 존재하는 토픽입니다.');
+      return;
+    }
+    const updatedSettings = {
+      ...settings,
+      categories: [...settings.categories, newTopic.trim()]
+    };
+    setSettings(updatedSettings);
+    setNewTopic('');
+    handleSaveSettings(updatedSettings);
+  };
+
+  const handleRemoveTopic = (topic: string) => {
+    if (!confirm(`'${topic}' 토픽을 삭제하시겠습니까? 이 토픽으로 분류된 글들은 카테고리 페이지에서 보이지 않을 수 있습니다.`)) return;
+    const updatedSettings = {
+      ...settings,
+      categories: settings.categories.filter(c => c !== topic)
+    };
+    setSettings(updatedSettings);
+    handleSaveSettings(updatedSettings);
   };
 
   const handleCreateOrUpdate = async (e: React.FormEvent) => {
@@ -160,12 +189,12 @@ const Admin: React.FC = () => {
       updatedPost = {
         id: Date.now().toString(),
         title: currentPost.title as string,
-        excerpt: currentPost.excerpt || "새로운 인사이트가 업데이트되었습니다.",
+        excerpt: currentPost.excerpt || "", // 기본 문구 제거됨
         content: currentPost.content as string,
         category: currentPost.category || settings.categories[0],
         author: currentPost.author || '김병준',
         date,
-        image: currentPost.image || `https://picsum.photos/seed/${Date.now()}/800/450`,
+        image: currentPost.image || '',
         slug,
         tags: currentPost.tags || [],
         views: 0,
@@ -243,13 +272,13 @@ const Admin: React.FC = () => {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {(['write', 'manage', 'settings', 'db', 'ads'] as AdminTab[]).map(tab => (
+          {(['write', 'manage', 'topics', 'settings', 'db', 'ads'] as AdminTab[]).map(tab => (
             <button 
               key={tab}
               onClick={() => { setActiveTab(tab); setSelectedPostAnalytics(null); }} 
               className={`px-4 py-2 rounded-lg font-bold text-xs transition-all ${activeTab === tab ? 'bg-black text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
             >
-              {tab === 'write' ? '글 작성' : tab === 'manage' ? '글 관리' : tab === 'settings' ? '사이트 설정' : tab === 'db' ? 'DB' : '광고'}
+              {tab === 'write' ? '글 작성' : tab === 'manage' ? '글 관리' : tab === 'topics' ? '토픽 관리' : tab === 'settings' ? '사이트 설정' : tab === 'db' ? 'DB' : '광고'}
             </button>
           ))}
           <button onClick={() => setIsAuthenticated(false)} className="px-4 py-2 bg-gray-50 text-gray-300 rounded-lg font-bold text-xs ml-4">로그아웃</button>
@@ -287,7 +316,7 @@ const Admin: React.FC = () => {
               className="w-full px-4 py-3 bg-gray-50 border rounded-xl font-bold text-sm resize-none" 
               value={currentPost.excerpt} 
               onChange={e => setCurrentPost({...currentPost, excerpt: e.target.value})} 
-              placeholder="짧은 요약 (글 리스트에 노출됩니다)" 
+              placeholder="짧은 요약 (비워두면 요약이 노출되지 않습니다)" 
               rows={2}
             />
             <div className="border rounded-2xl overflow-hidden min-h-[400px]">
@@ -297,6 +326,42 @@ const Admin: React.FC = () => {
               {isEditing ? '변경사항 저장하기' : '포스트 발행하기'}
             </button>
           </form>
+        </section>
+      )}
+
+      {activeTab === 'topics' && (
+        <section className="bg-white border p-8 rounded-3xl space-y-8 animate-in fade-in duration-300">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-black">토픽(카테고리) 관리</h2>
+            <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">현재 {settings.categories.length}개 활성화</p>
+          </div>
+
+          <div className="flex gap-4">
+            <input 
+              type="text" 
+              className="flex-grow px-4 py-3 bg-gray-50 border rounded-xl font-bold" 
+              value={newTopic} 
+              onChange={e => setNewTopic(e.target.value)} 
+              placeholder="새로운 토픽 이름" 
+              onKeyPress={e => e.key === 'Enter' && handleAddTopic()}
+            />
+            <button onClick={handleAddTopic} className="px-8 py-3 bg-black text-white rounded-xl font-bold text-sm">추가</button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {settings.categories.map(topic => (
+              <div key={topic} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-transparent hover:border-gray-200 transition-all group">
+                <span className="font-bold text-gray-800">{topic}</span>
+                <button 
+                  onClick={() => handleRemoveTopic(topic)}
+                  className="p-2 text-gray-300 hover:text-red-500 transition-colors"
+                  title="삭제"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
@@ -332,7 +397,6 @@ const Admin: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* 해당 포스트의 분석 데이터가 선택되었을 때만 표시 */}
                   {selectedPostAnalytics && selectedPostAnalytics.length > 0 && selectedPostAnalytics[0]?.source && (
                     <div className="mt-4 p-4 bg-gray-50 rounded-2xl border border-gray-100 animate-in slide-in-from-top-2 duration-300">
                       <h5 className="text-[10px] font-black uppercase text-gray-400 mb-3 tracking-widest">Top Traffic Sources</h5>
@@ -387,7 +451,7 @@ const Admin: React.FC = () => {
             </div>
           </div>
 
-          <button onClick={handleSaveSettings} className="w-full bg-black text-white py-4 rounded-xl font-bold shadow-lg shadow-gray-200">사이트 설정 저장</button>
+          <button onClick={() => handleSaveSettings()} className="w-full bg-black text-white py-4 rounded-xl font-bold shadow-lg shadow-gray-200">사이트 설정 저장</button>
         </section>
       )}
 
@@ -406,7 +470,7 @@ const Admin: React.FC = () => {
               <label className="text-[10px] font-black uppercase text-gray-400 mb-2 block">Supabase Anon Key</label>
               <input className="w-full px-4 py-3 bg-gray-50 border rounded-xl font-mono text-sm" value={settings.supabaseKey || ''} onChange={e => setSettings({...settings, supabaseKey: e.target.value})} placeholder="eyJhbGci..." />
             </div>
-            <button onClick={handleSaveSettings} className="w-full bg-black text-white py-4 rounded-xl font-bold">DB 설정 저장</button>
+            <button onClick={() => handleSaveSettings()} className="w-full bg-black text-white py-4 rounded-xl font-bold">DB 설정 저장</button>
           </div>
         </section>
       )}
@@ -433,7 +497,7 @@ const Admin: React.FC = () => {
                 <input className="w-full px-4 py-2 bg-gray-50 rounded-lg text-sm font-bold" value={settings.adConfig?.postBottomSlot || ''} onChange={e => setSettings({...settings, adConfig: {...settings.adConfig, postBottomSlot: e.target.value}})} placeholder="3456789012" />
               </div>
             </div>
-            <button onClick={handleSaveSettings} className="w-full bg-black text-white py-4 rounded-xl font-bold shadow-lg shadow-gray-200">광고 설정 저장</button>
+            <button onClick={() => handleSaveSettings()} className="w-full bg-black text-white py-4 rounded-xl font-bold shadow-lg shadow-gray-200">광고 설정 저장</button>
           </div>
         </section>
       )}

@@ -36,8 +36,6 @@ const PostDetail: React.FC = () => {
           if (cloudPost) {
             setPost(cloudPost);
             foundPost = cloudPost;
-            
-            // 조회수 증가 및 유입 경로 기록 (클라우드 데이터인 경우에만)
             incrementPostViews(cloudPost.id);
             recordVisit(cloudPost.id, document.referrer);
           }
@@ -95,7 +93,7 @@ const PostDetail: React.FC = () => {
   }
 
   return (
-    <article className="max-w-xl mx-auto pb-20">
+    <article className="max-w-5xl mx-auto pb-32">
       <SEO 
         title={post.title} 
         description={post.excerpt} 
@@ -104,67 +102,69 @@ const PostDetail: React.FC = () => {
         article={true} 
       />
       
-      <header className="mb-10">
-        <div className="flex items-center space-x-2 text-[10px] font-bold text-black uppercase mb-4 tracking-wider">
-          <span className="bg-gray-100 px-2 py-1 rounded">{post.category}</span>
+      <header className="mb-12">
+        <div className="flex items-center space-x-3 text-[10px] font-bold text-black uppercase mb-6 tracking-[0.15em]">
+          <span className="bg-gray-100 px-3 py-1 rounded"># {post.category}</span>
           <span className="text-gray-200">•</span>
           <span className="text-gray-400 font-medium">{post.date}</span>
           <span className="text-gray-200">•</span>
           <span className="text-gray-400 font-medium italic">Views {post.views || 0}</span>
         </div>
-        <h1 className="text-2xl md:text-4xl font-black text-gray-900 leading-tight mb-6">{post.title}</h1>
+        <h1 className="text-3xl md:text-6xl font-black text-gray-900 leading-[1.2] mb-10 tracking-tight">{post.title}</h1>
       </header>
 
-      <AdSense clientId={settings.adConfig?.clientId || ''} slot={settings.adConfig?.postTopSlot || ''} className="!my-8" />
+      <AdSense clientId={settings.adConfig?.clientId || ''} slot={settings.adConfig?.postTopSlot || ''} className="!my-12" />
 
-      <div className="mb-12 rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 shadow-sm">
-        <img src={post.image} alt={post.title} className="w-full h-auto object-cover max-h-[400px]" />
-      </div>
+      {post.image && (
+        <div className="mb-16 rounded-3xl overflow-hidden bg-gray-50 border border-gray-100 shadow-sm">
+          <img src={post.image} alt={post.title} className="w-full h-auto object-cover max-h-[700px]" />
+        </div>
+      )}
 
       <div 
-        className="ql-editor prose prose-sm prose-gray max-w-none text-gray-800 leading-relaxed text-[17px] !p-0"
+        className="ql-editor prose prose-gray max-w-none text-gray-800 leading-[1.8] text-[18px] md:text-[22px] !p-0"
         dangerouslySetInnerHTML={{ __html: post.content || '' }}
       />
 
-      <AdSense clientId={settings.adConfig?.clientId || ''} slot={settings.adConfig?.postBottomSlot || ''} className="mt-16 mb-8" />
+      <AdSense clientId={settings.adConfig?.clientId || ''} slot={settings.adConfig?.postBottomSlot || ''} className="mt-24 mb-12" />
 
-      <footer className="mt-16 pt-12 border-t border-gray-100">
+      <footer className="mt-24 pt-16 border-t border-gray-100">
         <section>
-          <h3 className="text-xl font-black text-gray-900 mb-8">댓글 {post.comments?.length || 0}</h3>
+          <h3 className="text-2xl font-black text-gray-900 mb-10">대화 {post.comments?.length || 0}</h3>
           
-          <form onSubmit={handleCommentSubmit} className="mb-12 space-y-4 bg-gray-50 p-6 rounded-2xl">
-            <div className="grid grid-cols-1 gap-4">
+          <form onSubmit={handleCommentSubmit} className="mb-16 space-y-6 bg-gray-50 p-10 rounded-[2.5rem]">
+            <div className="grid grid-cols-1 gap-6">
               <input 
                 required 
                 type="text" 
                 placeholder="작성자 성함" 
-                className="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl text-sm focus:border-black outline-none transition-all font-bold" 
+                className="w-full px-6 py-4 bg-white border border-gray-100 rounded-2xl text-base focus:border-black outline-none transition-all font-bold" 
                 value={commentName} 
                 onChange={(e) => setCommentName(e.target.value)} 
               />
               <textarea 
                 required 
-                rows={3} 
-                placeholder="의견을 남겨주세요..." 
-                className="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl text-sm resize-none focus:border-black outline-none transition-all font-medium" 
+                rows={4} 
+                placeholder="인사이트를 공유해주세요..." 
+                className="w-full px-6 py-4 bg-white border border-gray-100 rounded-2xl text-base resize-none focus:border-black outline-none transition-all font-medium" 
                 value={commentText} 
                 onChange={(e) => setCommentText(e.target.value)} 
               />
             </div>
-            <button type="submit" className="bg-black text-white px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition-all shadow-lg shadow-gray-100">댓글 등록</button>
+            <button type="submit" className="bg-black text-white px-10 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl shadow-gray-200 active:scale-95">댓글 등록</button>
           </form>
 
-          <div className="space-y-6">
+          <div className="space-y-8">
             {!post.comments || post.comments.length === 0 ? (
-              <p className="text-center py-10 text-gray-400 text-sm font-medium">첫 번째 댓글을 남겨보세요.</p>
+              <p className="text-center py-16 text-gray-300 text-sm font-bold uppercase tracking-widest">이 글의 첫 번째 대화 상대가 되어주세요.</p>
             ) : (
               post.comments.slice().reverse().map(comment => (
                 <div key={comment.id} className="group">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-black text-gray-900 text-sm">{comment.author}</span>
-                    <span className="text-[10px] text-gray-300 font-bold">{comment.date}</span>
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="font-black text-gray-900 text-base">{comment.author}</span>
+                    <span className="text-[11px] text-gray-300 font-bold uppercase tracking-tight">{comment.date}</span>
                   </div>
-                  <p className="text-gray-600 text-[14px] leading-relaxed font-medium bg-white group-hover:bg-gray-50 p-4 rounded-xl border border-transparent group-hover:border-gray-100 transition-all">
+                  <p className="text-gray-600 text-[16px] leading-relaxed font-medium bg-white group-hover:bg-gray-50 p-6 rounded-2xl border border-transparent group-hover:border-gray-100 transition-all shadow-sm group-hover:shadow-none">
                     {comment.text}
                   </p>
                 </div>

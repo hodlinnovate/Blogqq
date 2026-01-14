@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { BlogPost, SiteSettings } from '../types';
@@ -44,12 +45,12 @@ const Category: React.FC = () => {
   }, [categoryName, posts, settings]);
 
   return (
-    <div className="space-y-12">
+    <div className="max-w-6xl mx-auto space-y-12">
       <SEO title={seoData.title} description={seoData.description} keywords={seoData.keywords} />
       
-      <header className="mb-12 border-b border-gray-100 pb-8">
-        <h1 className="text-3xl font-extrabold text-gray-900">{categoryName}</h1>
-        <p className="text-gray-500 mt-2">{isLoading ? '인사이트 동기화 중...' : `총 ${posts.length}개의 분석 리포트`}</p>
+      <header className="mb-8 border-b border-gray-100 pb-6">
+        <h1 className="text-2xl font-black text-gray-900 tracking-tighter uppercase">{categoryName}</h1>
+        <p className="text-xs text-gray-400 font-bold mt-1 uppercase tracking-wider">{isLoading ? '인사이트 동기화 중...' : `총 ${posts.length}개의 리포트`}</p>
       </header>
 
       <AdSense 
@@ -58,30 +59,32 @@ const Category: React.FC = () => {
       />
 
       {posts.length > 0 ? (
-        <section className="divide-y divide-gray-100">
+        <section className="divide-y divide-gray-50">
           {posts.map((post) => (
-            <article key={post.id} className="group py-8 first:pt-0 last:pb-0">
-              <Link to={`/post/${post.slug}`} className="flex items-start justify-between gap-6">
-                <div className="flex-grow flex flex-col">
-                  <div className="flex items-center space-x-2 text-xs font-semibold text-black uppercase mb-2">
-                    <span className="bg-gray-100 px-1.5 py-0.5 rounded">{post.category}</span>
-                    <span className="text-gray-300">•</span>
-                    <span className="text-gray-400 font-normal">{post.date}</span>
+            <article key={post.id} className="group py-6 first:pt-0 last:pb-0">
+              <Link to={`/post/${post.slug}`} className="flex items-center justify-between gap-8">
+                <div className="flex-grow flex flex-col min-w-0">
+                  <div className="flex items-center space-x-2 text-[9px] font-bold text-gray-400 uppercase mb-1 tracking-tight">
+                    <span className="text-black bg-gray-100 px-1.5 py-0.5 rounded">{post.category}</span>
+                    <span>•</span>
+                    <span>{post.date}</span>
                   </div>
-                  <h2 className="text-xl md:text-2xl font-bold text-gray-900 group-hover:text-black group-hover:underline transition-all mb-3 leading-snug">
+                  <h2 className="text-sm md:text-base font-bold text-gray-900 group-hover:text-black group-hover:underline transition-all mb-1 leading-snug line-clamp-1">
                     {post.title}
                   </h2>
-                  <p className="text-gray-500 text-sm md:text-base leading-relaxed line-clamp-2">{post.excerpt}</p>
+                  <p className="text-gray-400 text-xs md:text-sm leading-relaxed line-clamp-1 font-medium">{post.excerpt}</p>
                 </div>
-                <div className="flex-shrink-0 w-24 h-24 md:w-32 md:h-32 rounded-lg overflow-hidden bg-gray-100">
-                  <img src={post.image} alt={post.title} className="w-full h-full object-cover grayscale transition-all group-hover:grayscale-0 group-hover:scale-110 duration-500" />
-                </div>
+                {post.image && (
+                  <div className="flex-shrink-0 w-20 h-20 md:w-32 md:h-32 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 shadow-sm">
+                    <img src={post.image} alt={post.title} className="w-full h-full object-cover grayscale transition-all group-hover:grayscale-0 group-hover:scale-110 duration-500" />
+                  </div>
+                )}
               </Link>
             </article>
           ))}
         </section>
       ) : (
-        <div className="py-20 text-center text-gray-400 font-bold">인사이트를 동기화하는 중이거나 글이 없습니다.</div>
+        <div className="py-20 text-center text-gray-300 font-bold text-xs uppercase tracking-widest">인사이트를 동기화하는 중이거나 글이 없습니다.</div>
       )}
     </div>
   );

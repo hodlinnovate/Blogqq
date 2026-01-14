@@ -108,6 +108,25 @@ export const recordVisit = async (postId: string, referrer: string) => {
   }
 };
 
+export const fetchTodayVisitorCount = async (): Promise<number> => {
+  const supabase = getDbClient();
+  if (!supabase) return 0;
+
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const { count, error } = await supabase
+      .from('analytics')
+      .select('*', { count: 'exact', head: true })
+      .gte('timestamp', today.toISOString());
+    
+    if (error) return 0;
+    return count || 0;
+  } catch (e) {
+    return 0;
+  }
+};
+
 export const fetchPostAnalytics = async (postId: string) => {
   const supabase = getDbClient();
   if (!supabase) return [];
